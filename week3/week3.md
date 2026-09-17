@@ -70,3 +70,28 @@ const model = M4.multiply(M4.rotateY(time * 0.8), M4.translate(0, 1.9, 0));
 
 * Matrix-Vector 곱셈의 특성상 **오른쪽에 위치한 변환이 먼저 수행**된다.
 * 이동 후 회전을 적용($\text{Rotate} \cdot \text{Translate}$)하면 물체가 회전축으로부터 떨어진 상태로 회전하므로 **공전 효과**가 발생한다.
+
+
+
+
+
+
+# 8단계 코드
+#version 300 es
+precision highp float;
+
+in vec3 vColor;
+in vec3 vNormal;
+
+uniform float uTime;
+out vec4 fragColor;
+
+void main() {
+  vec3 N = normalize(vNormal);
+  vec3 L = normalize(vec3(0.45, 0.8, 0.35));
+
+  float diff = max(dot(N, L), 0.0);
+  float toonDiff = floor(diff * 4.0) / 4.0; // 계단식 음영 적용
+
+  fragColor = vec4(vColor * (0.3 + 0.7 * toonDiff), 1.0);
+}
