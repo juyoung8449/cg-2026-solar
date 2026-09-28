@@ -108,7 +108,7 @@ window.InspectionControls = function(canvas) {
 
 
   // --------------------------------------------------
-  // 좌클릭 드래그 (X, Y 및 대각선 이동)
+  // 좌클릭 드래그 (X, Y 및 대각선 이동 반대로 수정)
   // --------------------------------------------------
 
   canvas.addEventListener('pointermove', e => {
@@ -129,25 +129,15 @@ window.InspectionControls = function(canvas) {
 
 
     // ----------------------------------------------
-    // 대각선 포함 X, Y축 이동 계산 수정
+    // X, Y축 및 대각선 이동 방향 (Y축 반대 적용)
     // ----------------------------------------------
     
-    // 마우스의 이동 방향(dx, dy)과 월드 좌표계 이동 방향이 
-    // 동일하게 맞춰지도록 부호를 정돈합니다.
-    
-    // 오른쪽으로 드래그(+dx) -> 화면/카메라가 오른쪽(+X)으로 이동
+    // 오른쪽으로 드래그(+dx) -> 오른쪽(+X)으로 이동
     state.target[0] = drag.target[0] + dx * unit;
 
-    // 위로 드래그(-dy) -> 화면/카메라가 위쪽(+Y)으로 이동
-    state.target[1] = drag.target[1] - dy * unit;
-
-    /*
-      참고: 만약 '마우스로 화면(종이)을 잡고 끌어당기는 방식(Pan)'을 원하시면
-      아래와 같이 부호를 모두 minus(-)로 맞춰주시면 됩니다.
-      
-      state.target[0] = drag.target[0] - dx * unit;
-      state.target[1] = drag.target[1] + dy * unit;
-    */
+    // 위로 드래그(-dy) -> 아래(-Y)로 이동 (반대 설정)
+    // 아래로 드래그(+dy) -> 위(+Y)로 이동
+    state.target[1] = drag.target[1] + dy * unit;
   });
 
 
