@@ -1,5 +1,6 @@
 # 깃허브 실행주소
 http://localhost:8000/week4/baseline/
+https://juyoung8449.github.io/cg-2026-solar/week4/improved/
 
 # 조작 방법
 본 프로그램은 마우스만을 이용하여 카메라를 조작한다. 좌클릭 후 드래그하면 카메라를 가로(X축)와 세로(Y축) 방향으로 이동할 수 있으며, 마우스 휠을 사용하면 앞뒤(Z축) 방향으로 이동할 수 있다.
