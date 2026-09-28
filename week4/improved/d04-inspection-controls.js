@@ -1,94 +1,265 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Improved Solar System - Diagonal Control</title>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background-color: #000;
-        }
-        canvas {
-            display: block;
-        }
-    </style>
-</head>
-<body>
+/* 
+   개선된 카메라 조작
 
-<!-- Three.js 라이브러리 (사용 중인 라이브러리 경로에 맞게 유지) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+   마우스 조작:
+   - 좌클릭 + 드래그 (상하/좌우/대각선) : 카메라 평면 이동 (Pan)
+   - 마우스 휠                         : Z축 거리 이동 (Zoom)
 
-<script>
-    // 1. 기본 Scene, Camera, Renderer 설정
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    document.body.appendChild(renderer.domElement);
+   좌클릭 드래그에서는 카메라 회전이 발생하지 않습니다.
+   따라서 이동 중에도 카메라의 수평/수직 방향이 유지됩니다.
+*/
 
-    // 임시 메쉬 (태양계/오브젝트 예시)
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
-    const cube = new THREE.Mesh(geometry, material);
-    scene.add(cube);
+window.InspectionControls = function(canvas) {
 
-    camera.position.z = 5;
+  // --------------------------------------------------
+  // 기본 벡터 / 쿼터니언 함수
+  // --------------------------------------------------
 
-    // ==========================================
-    // 2. 대각선 마우스 이동 핵심 구현 로직
-    // ==========================================
-    let isDragging = false;
-    let previousMousePosition = { x: 0, y: 0 };
+  const normalize = v => {
+    const n = Math.hypot(...v) || 1;
+    return v.map(x => x / n);
+  };
 
-    // 회전 계산 시 YXZ 순서를 지정해야 대각선으로 움직일 때 화면이 꼬이지 않습니다.
-    cube.rotation.reorder('YXZ'); // 카메라를 직접 돌리신다면 camera.rotation.reorder('YXZ'); 로 변경
+  const mul = (a, b) => [
+    a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1],
+    a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
+    a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3],
+    a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2]
+  ];
 
-    const sensitivity = 0.005; // 마우스 감도
+  const rotate = (q, v) =>
+    mul(
+      mul(q, [...v, 0]),
+      [-q[0], -q[1], -q[2], q[3]]
+    ).slice(0, 3);
 
-    window.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        previousMousePosition = { x: e.clientX, y: e.clientY };
+
+  // --------------------------------------------------
+  // 카메라 상태
+  // --------------------------------------------------
+
+  const state = {
+    target: [3, 3, 0],
+    distance: 30,
+
+    // 카메라 회전은 고정
+    rotation: [0, 0, 0, 1],
+
+    fov: 45,
+    actions: 0
+  };
+
+
+  // --------------------------------------------------
+  // 초기 위치
+  // --------------------------------------------------
+
+  function home() {
+
+    state.target = [3, 3, 0];
+    state.distance = 30;
+
+    // 카메라 방향 고정
+    state.rotation = [0, 0, 0, 1];
+
+    state.fov = 45;
+  }
+
+  home();
+
+
+  // --------------------------------------------------
+  // 마우스 드래그 상태
+  // --------------------------------------------------
+
+  let drag = null;
+
+  canvas.style.touchAction = 'none';
+
+  canvas.addEventListener(
+    'contextmenu',
+    e => e.preventDefault()
+  );
+
+
+  // --------------------------------------------------
+  // 좌클릭 시작
+  // --------------------------------------------------
+
+  canvas.addEventListener('pointerdown', e => {
+
+    // 좌클릭만 사용
+    if (drag || e.button !== 0) return;
+
+    drag = {
+      id: e.pointerId,
+      x: e.clientX,
+      y: e.clientY,
+
+      // 드래그 시작 당시 위치
+      target: [...state.target]
+    };
+
+    // 드래그 1회 = 조작 1회
+    state.actions++;
+
+    canvas.setPointerCapture(e.pointerId);
+  });
+
+
+  // --------------------------------------------------
+  // 좌클릭 드래그 (X, Y 및 대각선 이동)
+  // --------------------------------------------------
+
+  canvas.addEventListener('pointermove', e => {
+
+    if (!drag || drag.id !== e.pointerId) return;
+
+    const r = canvas.getBoundingClientRect();
+
+    const unit =
+      2 *
+      state.distance *
+      Math.tan(state.fov * Math.PI / 360) /
+      r.height;
+
+
+    const dx = e.clientX - drag.x;
+    const dy = e.clientY - drag.y;
+
+
+    // ----------------------------------------------
+    // 대각선 포함 X, Y축 이동 계산 수정
+    // ----------------------------------------------
+    
+    // 마우스의 이동 방향(dx, dy)과 월드 좌표계 이동 방향이 
+    // 동일하게 맞춰지도록 부호를 정돈합니다.
+    
+    // 오른쪽으로 드래그(+dx) -> 화면/카메라가 오른쪽(+X)으로 이동
+    state.target[0] = drag.target[0] + dx * unit;
+
+    // 위로 드래그(-dy) -> 화면/카메라가 위쪽(+Y)으로 이동
+    state.target[1] = drag.target[1] - dy * unit;
+
+    /*
+      참고: 만약 '마우스로 화면(종이)을 잡고 끌어당기는 방식(Pan)'을 원하시면
+      아래와 같이 부호를 모두 minus(-)로 맞춰주시면 됩니다.
+      
+      state.target[0] = drag.target[0] - dx * unit;
+      state.target[1] = drag.target[1] + dy * unit;
+    */
+  });
+
+
+  // --------------------------------------------------
+  // 드래그 종료
+  // --------------------------------------------------
+
+  for (
+    const event of [
+      'pointerup',
+      'pointercancel',
+      'lostpointercapture'
+    ]
+  ) {
+
+    canvas.addEventListener(event, e => {
+
+      if (drag?.id === e.pointerId) {
+        drag = null;
+      }
+
     });
+  }
 
-    window.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
 
-        // 가로(X), 세로(Y) 이동량 동시에 계산
-        const deltaX = e.clientX - previousMousePosition.x;
-        const deltaY = e.clientY - previousMousePosition.y;
+  // --------------------------------------------------
+  // 마우스 휠
+  // --------------------------------------------------
 
-        // X축 이동 -> Y축 회전(좌우)
-        // Y축 이동 -> X축 회전(상하)
-        // 대각선 이동 시 deltaX와 deltaY가 동시에 존재하므로 부드럽게 대각선으로 회전합니다.
-        cube.rotation.y += deltaX * sensitivity;
-        cube.rotation.x += deltaY * sensitivity;
+  let wheelTimer = null;
 
-        // 상하 회전 각도 제한 (화면이 뒤집히는 것 방지)
-        const maxPitch = Math.PI / 2 - 0.05;
-        cube.rotation.x = Math.max(-maxPitch, Math.min(maxPitch, cube.rotation.x));
+  canvas.addEventListener(
+    'wheel',
+    e => {
 
-        previousMousePosition = { x: e.clientX, y: e.clientY };
-    });
+      e.preventDefault();
 
-    window.addEventListener('mouseup', () => {
-        isDragging = false;
-    });
+      state.distance = Math.max(
+        0.12,
+        Math.min(
+          100,
+          state.distance *
+          Math.exp(e.deltaY * 0.001)
+        )
+      );
 
-    // 창 크기 변경 대응
-    window.addEventListener('resize', () => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-    });
+      if (wheelTimer === null) {
+        state.actions++;
+      }
 
-    // 애니메이션 루프
-    function animate() {
-        requestAnimationFrame(animate);
-        renderer.render(scene, camera);
-    }
-    animate();
-</script>
-</body>
-</html>
+      clearTimeout(wheelTimer);
+
+      wheelTimer = setTimeout(() => {
+        wheelTimer = null;
+      }, 250);
+
+    },
+    { passive: false }
+  );
+
+
+  // --------------------------------------------------
+  // 키보드 조작
+  // --------------------------------------------------
+
+  canvas.addEventListener('keydown', e => {
+
+    if (e.key !== 'Home') return;
+
+    e.preventDefault();
+
+    state.actions++;
+
+    home();
+  });
+
+
+  // --------------------------------------------------
+  // 카메라 계산
+  // --------------------------------------------------
+
+  function camera() {
+
+    const offset =
+      rotate(
+        state.rotation,
+        [0, 0, state.distance]
+      );
+
+    return {
+
+      eye: state.target.map(
+        (v, i) => v + offset[i]
+      ),
+
+      target: [...state.target],
+
+      up: rotate(
+        state.rotation,
+        [0, 1, 0]
+      )
+    };
+  }
+
+
+  // --------------------------------------------------
+  // 외부에서 사용할 값
+  // --------------------------------------------------
+
+  return {
+    state,
+    home,
+    camera
+  };
+};
