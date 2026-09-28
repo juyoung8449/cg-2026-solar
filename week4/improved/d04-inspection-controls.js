@@ -3,11 +3,15 @@
 
    마우스 조작:
    - 좌클릭 + 좌우 드래그 : X축 방향 이동
-   - 좌클릭 + 상하 드래그 : Y축 방향 이동
+   - 좌클릭 + 위/아래 드래그 : Y축 방향 이동
    - 마우스 휠             : Z축 방향 이동
 
    좌클릭 드래그에서는 카메라 회전이 발생하지 않습니다.
    따라서 이동 중에도 카메라의 수평/수직 방향이 유지됩니다.
+
+   Y축 이동:
+   - 마우스를 위로 드래그   → 카메라가 위로 이동
+   - 마우스를 아래로 드래그 → 카메라가 아래로 이동
 */
 
 window.InspectionControls = function(canvas) {
@@ -43,8 +47,7 @@ window.InspectionControls = function(canvas) {
     target: [3, 3, 0],
     distance: 30,
 
-    // 카메라 회전은 고정합니다.
-    // 기본 방향: +Z에서 -Z를 바라봄
+    // 카메라 회전은 고정
     rotation: [0, 0, 0, 1],
 
     fov: 45,
@@ -53,15 +56,15 @@ window.InspectionControls = function(canvas) {
 
 
   // --------------------------------------------------
-  // 초기 위치로 돌아가기
+  // 초기 위치
   // --------------------------------------------------
 
   function home() {
+
     state.target = [3, 3, 0];
     state.distance = 30;
 
-    // 카메라 방향을 초기화합니다.
-    // 회전값은 마우스 드래그로 변경되지 않습니다.
+    // 카메라 방향 고정
     state.rotation = [0, 0, 0, 1];
 
     state.fov = 45;
@@ -98,7 +101,7 @@ window.InspectionControls = function(canvas) {
       x: e.clientX,
       y: e.clientY,
 
-      // 드래그 시작 당시의 카메라 위치 저장
+      // 드래그 시작 당시 위치
       target: [...state.target]
     };
 
@@ -119,12 +122,6 @@ window.InspectionControls = function(canvas) {
 
     const r = canvas.getBoundingClientRect();
 
-    /*
-      화면 높이를 기준으로 이동량을 계산합니다.
-
-      distance가 멀어지면 한 번의 드래그로
-      더 넓은 거리를 이동할 수 있습니다.
-    */
     const unit =
       2 *
       state.distance *
@@ -147,6 +144,16 @@ window.InspectionControls = function(canvas) {
     // ----------------------------------------------
     // Y축 이동
     // ----------------------------------------------
+    /*
+      브라우저 화면 좌표에서는
+      위쪽으로 움직일수록 dy가 음수가 됩니다.
+
+      따라서 위로 드래그했을 때
+      Y값이 증가하도록 -dy를 사용합니다.
+
+      위로 드래그 → Y 증가 → 위로 이동
+      아래로 드래그 → Y 감소 → 아래로 이동
+    */
 
     state.target[1] =
       drag.target[1] - dy * unit;
@@ -154,9 +161,9 @@ window.InspectionControls = function(canvas) {
 
     /*
       중요:
-      여기서는 state.rotation을 변경하지 않습니다.
+      state.rotation은 변경하지 않습니다.
 
-      따라서 좌클릭 드래그를 해도
+      따라서 좌클릭 드래그 중
       카메라가 회전하지 않습니다.
     */
   });
@@ -198,8 +205,8 @@ window.InspectionControls = function(canvas) {
 
       /*
         휠:
-        앞으로 굴리면 카메라가 가까워지고
-        뒤로 굴리면 카메라가 멀어집니다.
+        위쪽으로 굴리면 가까워지고
+        아래쪽으로 굴리면 멀어집니다.
       */
 
       state.distance = Math.max(
@@ -213,11 +220,7 @@ window.InspectionControls = function(canvas) {
 
 
       /*
-        휠을 한 번 굴릴 때마다 actions가 증가하는
-        기존 문제를 개선합니다.
-
-        짧은 시간 동안 연속으로 발생한 wheel 이벤트는
-        하나의 조작으로 처리합니다.
+        연속적인 휠 입력은 하나의 조작으로 처리
       */
 
       if (wheelTimer === null) {
@@ -240,13 +243,10 @@ window.InspectionControls = function(canvas) {
   // --------------------------------------------------
 
   /*
-    기존에는 방향키를 이용해서 카메라를 회전시켰습니다.
+    마우스만 사용하는 조작 방식이므로
+    방향키를 통한 회전은 제거합니다.
 
-    이번 개선 버전에서는
-    "마우스만 사용"하는 조작 방식을 적용하므로
-    키보드 조작을 제거합니다.
-
-    Home만 남겨서 초기 화면으로 돌아갈 수 있도록 합니다.
+    Home은 초기 화면으로 돌아가는 기능만 유지합니다.
   */
 
   canvas.addEventListener('keydown', e => {
