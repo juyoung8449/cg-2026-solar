@@ -1,301 +1,94 @@
-/* 
-   개선된 카메라 조작
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Improved Solar System - Diagonal Control</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
 
-   마우스 조작:
-   - 좌클릭 + 좌우 드래그 : X축 방향 이동
-   - 좌클릭 + 위/아래 드래그 : Y축 방향 이동
-   - 마우스 휠             : Z축 방향 이동
+<!-- Three.js 라이브러리 (사용 중인 라이브러리 경로에 맞게 유지) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
-   좌클릭 드래그에서는 카메라 회전이 발생하지 않습니다.
-   따라서 이동 중에도 카메라의 수평/수직 방향이 유지됩니다.
+<script>
+    // 1. 기본 Scene, Camera, Renderer 설정
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
 
-   Y축 이동:
-   - 마우스를 위로 드래그   → 카메라가 위로 이동
-   - 마우스를 아래로 드래그 → 카메라가 아래로 이동
-*/
+    // 임시 메쉬 (태양계/오브젝트 예시)
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+    const cube = new THREE.Mesh(geometry, material);
+    scene.add(cube);
 
-window.InspectionControls = function(canvas) {
+    camera.position.z = 5;
 
-  // --------------------------------------------------
-  // 기본 벡터 / 쿼터니언 함수
-  // --------------------------------------------------
+    // ==========================================
+    // 2. 대각선 마우스 이동 핵심 구현 로직
+    // ==========================================
+    let isDragging = false;
+    let previousMousePosition = { x: 0, y: 0 };
 
-  const normalize = v => {
-    const n = Math.hypot(...v) || 1;
-    return v.map(x => x / n);
-  };
+    // 회전 계산 시 YXZ 순서를 지정해야 대각선으로 움직일 때 화면이 꼬이지 않습니다.
+    cube.rotation.reorder('YXZ'); // 카메라를 직접 돌리신다면 camera.rotation.reorder('YXZ'); 로 변경
 
-  const mul = (a, b) => [
-    a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1],
-    a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
-    a[3] * b[2] + a[0] * b[1] - a[1] * b[0] + a[2] * b[3],
-    a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2]
-  ];
+    const sensitivity = 0.005; // 마우스 감도
 
-  const rotate = (q, v) =>
-    mul(
-      mul(q, [...v, 0]),
-      [-q[0], -q[1], -q[2], q[3]]
-    ).slice(0, 3);
-
-
-  // --------------------------------------------------
-  // 카메라 상태
-  // --------------------------------------------------
-
-  const state = {
-    target: [3, 3, 0],
-    distance: 30,
-
-    // 카메라 회전은 고정
-    rotation: [0, 0, 0, 1],
-
-    fov: 45,
-    actions: 0
-  };
-
-
-  // --------------------------------------------------
-  // 초기 위치
-  // --------------------------------------------------
-
-  function home() {
-
-    state.target = [3, 3, 0];
-    state.distance = 30;
-
-    // 카메라 방향 고정
-    state.rotation = [0, 0, 0, 1];
-
-    state.fov = 45;
-  }
-
-  home();
-
-
-  // --------------------------------------------------
-  // 마우스 드래그 상태
-  // --------------------------------------------------
-
-  let drag = null;
-
-  canvas.style.touchAction = 'none';
-
-  canvas.addEventListener(
-    'contextmenu',
-    e => e.preventDefault()
-  );
-
-
-  // --------------------------------------------------
-  // 좌클릭 시작
-  // --------------------------------------------------
-
-  canvas.addEventListener('pointerdown', e => {
-
-    // 좌클릭만 사용
-    if (drag || e.button !== 0) return;
-
-    drag = {
-      id: e.pointerId,
-      x: e.clientX,
-      y: e.clientY,
-
-      // 드래그 시작 당시 위치
-      target: [...state.target]
-    };
-
-    // 드래그 1회 = 조작 1회
-    state.actions++;
-
-    canvas.setPointerCapture(e.pointerId);
-  });
-
-
-  // --------------------------------------------------
-  // 좌클릭 드래그
-  // --------------------------------------------------
-
-  canvas.addEventListener('pointermove', e => {
-
-    if (!drag || drag.id !== e.pointerId) return;
-
-    const r = canvas.getBoundingClientRect();
-
-    const unit =
-      2 *
-      state.distance *
-      Math.tan(state.fov * Math.PI / 360) /
-      r.height;
-
-
-    const dx = e.clientX - drag.x;
-    const dy = e.clientY - drag.y;
-
-
-    // ----------------------------------------------
-    // X축 이동
-    // ----------------------------------------------
-
-    state.target[0] =
-      drag.target[0] - dx * unit;
-
-
-    // ----------------------------------------------
-    // Y축 이동
-    // ----------------------------------------------
-    /*
-      브라우저 화면 좌표에서는
-      위쪽으로 움직일수록 dy가 음수가 됩니다.
-
-      따라서 위로 드래그했을 때
-      Y값이 증가하도록 -dy를 사용합니다.
-
-      위로 드래그 → Y 증가 → 위로 이동
-      아래로 드래그 → Y 감소 → 아래로 이동
-    */
-
-    state.target[1] =
-      drag.target[1] - dy * unit;
-
-
-    /*
-      중요:
-      state.rotation은 변경하지 않습니다.
-
-      따라서 좌클릭 드래그 중
-      카메라가 회전하지 않습니다.
-    */
-  });
-
-
-  // --------------------------------------------------
-  // 드래그 종료
-  // --------------------------------------------------
-
-  for (
-    const event of [
-      'pointerup',
-      'pointercancel',
-      'lostpointercapture'
-    ]
-  ) {
-
-    canvas.addEventListener(event, e => {
-
-      if (drag?.id === e.pointerId) {
-        drag = null;
-      }
-
+    window.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        previousMousePosition = { x: e.clientX, y: e.clientY };
     });
-  }
 
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
 
-  // --------------------------------------------------
-  // 마우스 휠
-  // --------------------------------------------------
+        // 가로(X), 세로(Y) 이동량 동시에 계산
+        const deltaX = e.clientX - previousMousePosition.x;
+        const deltaY = e.clientY - previousMousePosition.y;
 
-  let wheelTimer = null;
+        // X축 이동 -> Y축 회전(좌우)
+        // Y축 이동 -> X축 회전(상하)
+        // 대각선 이동 시 deltaX와 deltaY가 동시에 존재하므로 부드럽게 대각선으로 회전합니다.
+        cube.rotation.y += deltaX * sensitivity;
+        cube.rotation.x += deltaY * sensitivity;
 
-  canvas.addEventListener(
-    'wheel',
-    e => {
+        // 상하 회전 각도 제한 (화면이 뒤집히는 것 방지)
+        const maxPitch = Math.PI / 2 - 0.05;
+        cube.rotation.x = Math.max(-maxPitch, Math.min(maxPitch, cube.rotation.x));
 
-      e.preventDefault();
+        previousMousePosition = { x: e.clientX, y: e.clientY };
+    });
 
-      /*
-        휠:
-        위쪽으로 굴리면 가까워지고
-        아래쪽으로 굴리면 멀어집니다.
-      */
+    window.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
 
-      state.distance = Math.max(
-        0.12,
-        Math.min(
-          100,
-          state.distance *
-          Math.exp(e.deltaY * 0.001)
-        )
-      );
+    // 창 크기 변경 대응
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
 
-
-      /*
-        연속적인 휠 입력은 하나의 조작으로 처리
-      */
-
-      if (wheelTimer === null) {
-        state.actions++;
-      }
-
-      clearTimeout(wheelTimer);
-
-      wheelTimer = setTimeout(() => {
-        wheelTimer = null;
-      }, 250);
-
-    },
-    { passive: false }
-  );
-
-
-  // --------------------------------------------------
-  // 키보드 조작
-  // --------------------------------------------------
-
-  /*
-    마우스만 사용하는 조작 방식이므로
-    방향키를 통한 회전은 제거합니다.
-
-    Home은 초기 화면으로 돌아가는 기능만 유지합니다.
-  */
-
-  canvas.addEventListener('keydown', e => {
-
-    if (e.key !== 'Home') return;
-
-    e.preventDefault();
-
-    state.actions++;
-
-    home();
-  });
-
-
-  // --------------------------------------------------
-  // 카메라 계산
-  // --------------------------------------------------
-
-  function camera() {
-
-    const offset =
-      rotate(
-        state.rotation,
-        [0, 0, state.distance]
-      );
-
-    return {
-
-      eye: state.target.map(
-        (v, i) => v + offset[i]
-      ),
-
-      target: [...state.target],
-
-      up: rotate(
-        state.rotation,
-        [0, 1, 0]
-      )
-    };
-  }
-
-
-  // --------------------------------------------------
-  // 외부에서 사용할 값
-  // --------------------------------------------------
-
-  return {
-    state,
-    home,
-    camera
-  };
-};
+    // 애니메이션 루프
+    function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+    }
+    animate();
+</script>
+</body>
+</html>
