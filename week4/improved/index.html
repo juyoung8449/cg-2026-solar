@@ -1,21 +1,108 @@
-<!doctype html>
-<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>복합 연구시설 — 기본 트랙볼 뷰어</title><link rel="stylesheet" href="demo.css">
-<style>
-.wrap{grid-template-columns:minmax(0,1fr) 18rem;height:100vh;height:100dvh;min-height:500px}.stage{display:grid;grid-template-rows:minmax(240px,1fr) auto auto;align-items:stretch;justify-content:stretch;min-height:0;overflow:auto}.viewport{position:relative;min-height:0}.stage canvas{position:absolute;inset:0;display:block;width:100%;height:100%;max-height:none;cursor:grab}
-canvas:focus-visible{outline:2px solid var(--d-accent);outline-offset:-2px}.readings{padding:10px 14px;white-space:pre-wrap;font:12px/1.6 monospace;color:var(--d-ink)}
-.instructions{padding:0 14px}.tasks{padding-left:22px}.tasks li{margin:9px 0}.actions{display:flex;gap:8px;flex-wrap:wrap}.actions button{flex:1}
-@media(max-width:900px){.wrap{display:block;height:auto}.panel{border-left:0;max-height:none}.stage{height:100vh;height:100dvh;min-height:500px}}
-</style></head><body>
-<div class="wrap"><div class="stage">
-<div class="viewport"><canvas id="cv" tabindex="0" aria-label="다층 연구시설의 3차원 모델. 드래그로 회전, Shift 드래그로 이동, 휠로 확대">WebGL2를 지원하는 브라우저에서 실행하세요.</canvas></div>
-<p class="instructions">드래그: 트랙볼 회전 · Shift+드래그 / 오른쪽 드래그: 평행 이동 · 휠: 거리 조절<br>키보드 방향키: 회전 · + / −: 거리 조절 · Home: 전체 보기</p>
-<pre class="readings" id="readings"></pre></div>
-<div class="panel"><h1>복합 연구시설 관찰</h1><p class="sub">기본 조작만으로 표지 6곳을 읽고, 전면·측면 비교 2건도 시도하세요. 어디에서 조작이 어려워지는지 기록합니다.</p>
-<div class="actions"><button class="btn" id="home" type="button">전체 보기</button><button class="btn" id="measure" type="button">측정 시작 / 초기화</button></div>
-<ol class="tasks" id="tasks"></ol><div id="student-ui"></div>
-<p class="note">건물 규모 약 20m · 가장 작은 명판 폭 0.28m. 전체 보기와 세부 관찰에 필요한 시점이 다릅니다. 명판은 한쪽 면에만 글자가 있습니다. O1·O2는 글자가 아니라 높이·폭·돌출을 비교하는 과제입니다.</p>
+GitHub Pages가 화면을 표시하도록 `index.html`을 추가하세요. 앞서 만든 긴 조작 코드는 저장소 루트에 `inspection-controls.js`라는 이름으로 저장해야 합니다.
 
-</div></div>
-<script src="demo.js"></script><script src="d04-inspection-model.js?v=3f1b6bc733"></script><script src="d04-inspection-controls.js"></script><script src="d04-inspection-viewer.js?v=8a4c2fbf62"></script><script src="d04-inspection-student.js?v=e71bc4da3b"></script>
-</body></html>
+저장소 구조:
+
+````text
+저장소/
+├── index.html
+└── inspection-controls.js
+````
+
+`index.html`을 다음 내용으로 만들거나 기존 파일을 교체하세요.
+
+````html
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>카메라 조작 데모</title>
+  <style>
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    #help {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      padding: 8px 12px;
+      background: white;
+      font: 14px sans-serif;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="help">드래그: 패닝 · Alt + 드래그: 회전 · 휠: 확대/축소 · Home: 초기화</div>
+
+  <script src="./inspection-controls.js"></script>
+  <script type="module">
+    import * as THREE from
+      'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.domElement.tabIndex = 0;
+    document.body.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf2f4f7);
+
+    const camera = new THREE.PerspectiveCamera(
+      45,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      1000
+    );
+
+    scene.add(new THREE.GridHelper(40, 40));
+    scene.add(new THREE.AxesHelper(5));
+
+    const cube = new THREE.Mesh(
+      new THREE.BoxGeometry(4, 4, 4),
+      new THREE.MeshNormalMaterial()
+    );
+    cube.position.set(3, 3, 0);
+    scene.add(cube);
+
+    if (typeof window.InspectionControls !== 'function') {
+      throw new Error('inspection-controls.js가 로드되지 않았습니다.');
+    }
+
+    const controls = window.InspectionControls(renderer.domElement);
+
+    function render() {
+      const view = controls.camera();
+
+      camera.position.set(...view.eye);
+      camera.up.set(...view.up);
+      camera.lookAt(...view.target);
+      camera.fov = controls.state.fov;
+      camera.updateProjectionMatrix();
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(render);
+    }
+
+    function resize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.addEventListener('resize', resize);
+    render();
+  </script>
+</body>
+</html>
+````
+
+GitHub 저장소의 **Settings → Pages**에서 배포를 설정한 뒤 사이트를 새로고침하세요. 그래도 빈 화면이면 개발자 도구(**⌥⌘I → Console**)에서 오류를 확인하세요. `inspection-controls.js`의 파일명과 경로는 대소문자까지 정확히 일치해야 합니다.
