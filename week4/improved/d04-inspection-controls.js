@@ -1,7 +1,3 @@
-아래 코드는 기존 기능에 조작 안내, 키보드 포커스, 두 손가락 확대·축소/이동, 마우스 커서 기준 확대·축소, 회전 제한, 상태 변경 콜백, 이벤트 정리 기능을 추가한 버전입니다.
-
-```javascript
-// ...existing code...
 window.InspectionControls = function(canvas, options = {}) {
   const initialTarget = options.target ?? [3, 3, 0];
   const initialDistance = options.distance ?? 30;
@@ -21,6 +17,7 @@ window.InspectionControls = function(canvas, options = {}) {
     a[0] * b[1] - a[1] * b[0]
   ];
 
+  // Quaternion multiplication: q1 * q2
   const mul = (a, b) => [
     a[3] * b[0] + a[0] * b[3] + a[1] * b[2] - a[2] * b[1],
     a[3] * b[1] - a[0] * b[2] + a[1] * b[3] + a[2] * b[0],
@@ -28,11 +25,24 @@ window.InspectionControls = function(canvas, options = {}) {
     a[3] * b[3] - a[0] * b[0] - a[1] * b[1] - a[2] * b[2]
   ];
 
-  const rotate = (q, v) =>
-    mul(mul(q, [...v, 0]), [-q[0], -q[1], -q[2], q[3]]).slice(0, 3);
+  // Corrected vector rotation by unit quaternion q
+  const rotate = (q, v) => {
+    const [qx, qy, qz, qw] = q;
+    const [vx, vy, vz] = v;
 
-  const clamp = (value, min, max) =>
-    Math.max(min, Math.min(max, value));
+    const ix = qw * vx + qy * vz - qz * vy;
+    const iy = qw * vy + qz * vx - qx * vz;
+    const iz = qw * vz + qx * vy - qy * vx;
+    const iw = -qx * vx - qy * vy - qz * vz;
+
+    return [
+      ix * qw + iw * -qx + iy * -qz - iz * -qy,
+      iy * qw + iw * -qy + iz * -qx - ix * -qz,
+      iz * qw + iw * -qz + ix * -qy - iy * -qx
+    ];
+  };
+
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
   const state = {
     target: [...initialTarget],
@@ -42,15 +52,15 @@ window.InspectionControls = function(canvas, options = {}) {
     actions: 0
   };
 
-  // 위아래 회전 각도를 제한하고 화면의 수평을 유지합니다.
   function constrainRotation(q) {
     const direction = rotate(q, [0, 0, 1]);
-    const pitch = clamp(Math.asin(clamp(direction[1], -1, 1)), -maxPitch, maxPitch);
+    const pitch = clamp(Math.asin(clamp(-direction[1], -1, 1)), -maxPitch, maxPitch);
     const yaw = Math.atan2(direction[0], direction[2]);
 
     const yawRotation = [0, Math.sin(yaw / 2), 0, Math.cos(yaw / 2)];
-    const pitchRotation = [Math.sin(-pitch / 2), 0, 0, Math.cos(pitch / 2)];
+    const pitchRotation = [Math.sin(pitch / 2), 0, 0, Math.cos(pitch / 2)];
 
+    // Pitch 적용 후 Yaw 적용
     return normalize(mul(yawRotation, pitchRotation));
   }
 
@@ -58,8 +68,8 @@ window.InspectionControls = function(canvas, options = {}) {
     state.target = [...initialTarget];
     state.distance = initialDistance;
 
-    const yaw = [0, Math.sin(0.3), 0, Math.cos(0.3)];
-    const pitch = [Math.sin(-0.22), 0, 0, Math.cos(0.22)];
+    const yaw = [0, Math.sin(0.15), 0, Math.cos(0.15)];
+    const pitch = [Math.sin(-0.11), 0, 0, Math.cos(0.11)];
     state.rotation = constrainRotation(mul(yaw, pitch));
   }
 
@@ -159,7 +169,7 @@ window.InspectionControls = function(canvas, options = {}) {
 
   function panTarget(target, rotation, dx, dy, distance) {
     const rect = canvas.getBoundingClientRect();
-    const unit = 2 * distance * Math.tan(state.fov * Math.PI / 360) /
+    const unit = 2 * distance * Math.tan((state.fov * Math.PI) / 360) /
       Math.max(1, rect.height);
     const right = rotate(rotation, [1, 0, 0]);
     const up = rotate(rotation, [0, 1, 0]);
@@ -175,7 +185,7 @@ window.InspectionControls = function(canvas, options = {}) {
     const dy = clientY - (rect.top + rect.height / 2);
     const right = rotate(state.rotation, [1, 0, 0]);
     const up = rotate(state.rotation, [0, 1, 0]);
-    const oldUnit = 2 * state.distance * Math.tan(state.fov * Math.PI / 360) /
+    const oldUnit = 2 * state.distance * Math.tan((state.fov * Math.PI) / 360) /
       Math.max(1, rect.height);
     const anchor = state.target.map((value, i) =>
       value + dx * oldUnit * right[i] - dy * oldUnit * up[i]
@@ -183,7 +193,7 @@ window.InspectionControls = function(canvas, options = {}) {
 
     state.distance = clamp(state.distance * factor, minDistance, maxDistance);
 
-    const newUnit = 2 * state.distance * Math.tan(state.fov * Math.PI / 360) /
+    const newUnit = 2 * state.distance * Math.tan((state.fov * Math.PI) / 360) /
       Math.max(1, rect.height);
 
     state.target = anchor.map((value, i) =>
@@ -209,7 +219,7 @@ window.InspectionControls = function(canvas, options = {}) {
     try {
       canvas.setPointerCapture(event.pointerId);
     } catch {
-      // 브라우저가 포인터 캡처를 지원하지 않으면 계속 진행합니다.
+      // 포인터 캡처 미지원 시 무시
     }
   }, listenerOptions);
 
@@ -225,19 +235,13 @@ window.InspectionControls = function(canvas, options = {}) {
     if (gesture.mode === 'rotate') {
       const current = sphere(pointer);
       const dot = current.reduce((sum, value, i) => sum + value * gesture.point[i], 0);
-      let delta = [...cross(current, gesture.point), 1 + dot];
+      
+      // Arcball 회전축 계산 보정
+      const axis = cross(gesture.point, current);
+      const w = 1 + dot;
+      const delta = normalize([...axis, w]);
 
-      if (Math.hypot(...delta) < 1e-7) {
-        const axis = normalize(cross(
-          current,
-          Math.abs(current[0]) < 0.9 ? [1, 0, 0] : [0, 1, 0]
-        ));
-        delta = [...axis, 0];
-      }
-
-      state.rotation = constrainRotation(
-        mul(gesture.rotation, normalize(delta))
-      );
+      state.rotation = constrainRotation(mul(gesture.rotation, delta));
     } else if (gesture.mode === 'pan') {
       state.target = panTarget(
         gesture.target,
@@ -255,7 +259,7 @@ window.InspectionControls = function(canvas, options = {}) {
       const separation = Math.hypot(a.x - b.x, a.y - b.y) || 1;
 
       state.distance = clamp(
-        gesture.distance * gesture.separation / separation,
+        (gesture.distance * gesture.separation) / separation,
         minDistance,
         maxDistance
       );
@@ -270,7 +274,6 @@ window.InspectionControls = function(canvas, options = {}) {
       );
     }
 
-    // 좌표가 실제로 바뀐 경우에만 변경을 알립니다.
     if (previousX !== pointer.x || previousY !== pointer.y) {
       notify();
     }
@@ -298,10 +301,12 @@ window.InspectionControls = function(canvas, options = {}) {
     const zoomOutKeys = ['-', '_', '['];
     const arrowKeys = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'];
 
-    if (!arrowKeys.includes(event.key) &&
-        !zoomInKeys.includes(event.key) &&
-        !zoomOutKeys.includes(event.key) &&
-        event.key !== 'Home') {
+    if (
+      !arrowKeys.includes(event.key) &&
+      !zoomInKeys.includes(event.key) &&
+      !zoomOutKeys.includes(event.key) &&
+      event.key !== 'Home'
+    ) {
       return;
     }
 
@@ -331,13 +336,14 @@ window.InspectionControls = function(canvas, options = {}) {
       const dy = event.key === 'ArrowUp' ? -step : event.key === 'ArrowDown' ? step : 0;
       state.target = panTarget(state.target, state.rotation, dx, dy, state.distance);
     } else {
-      const yaw = event.key === 'ArrowLeft' ? 0.06 :
-        event.key === 'ArrowRight' ? -0.06 : 0;
-      const pitch = event.key === 'ArrowUp' ? 0.06 :
-        event.key === 'ArrowDown' ? -0.06 : 0;
+      const yaw = event.key === 'ArrowLeft' ? 0.06 : event.key === 'ArrowRight' ? -0.06 : 0;
+      const pitch = event.key === 'ArrowUp' ? 0.06 : event.key === 'ArrowDown' ? -0.06 : 0;
+
+      const yawRot = [0, Math.sin(yaw / 2), 0, Math.cos(yaw / 2)];
+      const pitchRot = [Math.sin(pitch / 2), 0, 0, Math.cos(pitch / 2)];
 
       state.rotation = constrainRotation(
-        mul(state.rotation, normalize([pitch, yaw, 0, 1]))
+        mul(state.rotation, mul(yawRot, pitchRot))
       );
     }
 
@@ -359,7 +365,7 @@ window.InspectionControls = function(canvas, options = {}) {
       try {
         canvas.releasePointerCapture(pointerId);
       } catch {
-        // 이미 해제된 포인터는 무시합니다.
+        // 무시
       }
     }
 
@@ -379,7 +385,3 @@ window.InspectionControls = function(canvas, options = {}) {
   resetState();
   return { state, home, camera, destroy };
 };
-// ...existing code...
-```
-
-`options.onChange(camera, state)`에서 렌더링을 갱신하면 됩니다. 관성 회전은 조작 예측성을 우선해 이 버전에는 넣지 않았습니다.
