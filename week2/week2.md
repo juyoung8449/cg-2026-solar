@@ -145,6 +145,10 @@ Starlink 31114는 지구 표면에서 약 476~497 km 높이에 있는 저궤도 
 )","reference":{"matched_text":"","prefix":null,"start_idx":3909,"end_idx":3928,"safe_urls":["https://satellitemap.space/?norad=58766","https://satellitemap.space/?norad=58766&utm_source=chatgpt.com"],"refs":[],"alt":"(SatelliteMap.space
 )","prompt_text":null,"type":"grouped_webpages","style":null,"status":"done","items":[{"title":"Starlink 31114 (58766) - starlink satellite tracking | SatelliteMap.space","url":"https://satellitemap.space/?norad=58766&utm_source=chatgpt.com","attribution":"SatelliteMap.space","pub_date":null,"snippet":"","attribution_segments":null,"supporting_websites":[],"refs":[{"turn_index":1,"ref_type":"search","ref_index":0}],"hue":null,"attributions":null}],"fallback_items":null,"error":null},"showLoginRequiredCard":false}
 
+
+
+https://cg.catholic.ac.kr/~mgchoi/CG/demos/d02-transform-lab.html?d=eyJyYW5nZSI6eyJ4IjoiNDIwMDAwIiwieSI6IjQyMDAwMCIsInoiOiI0MjAwMDAifSwib2JqZWN0cyI6W3siaWQiOiJlYXJ0aCIsIm5hbWUiOiLsp4DqtawiLCJjb2xvciI6WzAuMzUsMC42LDAuOTVdLCJzdGVwcyI6W3sidHlwZSI6IlJ6IiwiYXJncyI6WyJ0KjM2MCJdfSx7InR5cGUiOiJTIiwiYXJncyI6WyI2MzcxIiwiNjM3MSIsIjYzNzEiXX1dfSx7ImlkIjoibW9vbiIsIm5hbWUiOiLri6wiLCJjb2xvciI6WzAuNzgsMC43OCwwLjgyXSwic3RlcHMiOlt7InR5cGUiOiJSeiIsImFyZ3MiOlsidCoxMy4yIl19LHsidHlwZSI6IlQiLCJhcmdzIjpbIjM4NDQwMCIsIjAiLCIwIl19LHsidHlwZSI6IlJ6IiwiYXJncyI6WyIxODAiXX0seyJ0eXBlIjoiUyIsImFyZ3MiOlsiMTczNyIsIjE3MzciLCIxNzM3Il19XX0seyJpZCI6InNhdCIsIm5hbWUiOiLsnbjqs7XsnITshLEiLCJjb2xvciI6WzAuOTUsMC43MiwwLjM1XSwic3RlcHMiOlt7InR5cGUiOiJSeCIsImFyZ3MiOlsiNTMuMTYiXX0seyJ0eXBlIjoiUnoiLCJhcmdzIjpbInQqMTAwIl19LHsidHlwZSI6IlQiLCJhcmdzIjpbIjY4NDAuODUiLCIwIiwiMCJdfSx7InR5cGUiOiJTIiwiYXJncyI6WyIwLjAzIiwiMC4wMyIsIjAuMDMiXX1dfV19
+
 #TASK 3
 
 1. 실제 비율이 정보를 전달하기에 적합한지 판단
