@@ -1,49 +1,247 @@
-/* 가상 구(arcball)에 포인터를 투영하는 기본 트랙볼.
-   회전 상태는 쿼터니언이며 카메라의 eye/up을 함께 회전합니다. */
-window.InspectionControls = function(canvas) {
-  const normalize=v=>{const n=Math.hypot(...v)||1;return v.map(x=>x/n);};
-  const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
-  const mul=(a,b)=>[
-    a[3]*b[0]+a[0]*b[3]+a[1]*b[2]-a[2]*b[1],
-    a[3]*b[1]-a[0]*b[2]+a[1]*b[3]+a[2]*b[0],
-    a[3]*b[2]+a[0]*b[1]-a[1]*b[0]+a[2]*b[3],
-    a[3]*b[3]-a[0]*b[0]-a[1]*b[1]-a[2]*b[2]];
-  const rotate=(q,v)=>mul(mul(q,[...v,0]),[-q[0],-q[1],-q[2],q[3]]).slice(0,3);
-  const state={target:[3,3,0],distance:30,rotation:[0,0,0,1],fov:45,actions:0};
-  function home(){state.target=[3,3,0];state.distance=30;state.rotation=normalize(mul([0,Math.sin(.3),0,Math.cos(.3)],[Math.sin(-.22),0,0,Math.cos(.22)]));state.fov=45;}
-  home();
-  function sphere(e){const r=canvas.getBoundingClientRect(),s=Math.min(r.width,r.height),x=(2*(e.clientX-r.left)-r.width)/s,y=(r.height-2*(e.clientY-r.top))/s,d=x*x+y*y;return d<=1?[x,y,Math.sqrt(1-d)]:normalize([x,y,0]);}
-  let drag=null;
-  canvas.style.touchAction='none';
-  canvas.addEventListener('contextmenu',e=>e.preventDefault());
-  canvas.addEventListener('pointerdown',e=>{
-    if(drag || ![0,2].includes(e.button))return;
-    drag={id:e.pointerId,p:sphere(e),x:e.clientX,y:e.clientY,q:[...state.rotation],target:[...state.target],pan:e.shiftKey||e.button===2};
-    state.actions++;canvas.setPointerCapture(e.pointerId);
-  });
-  canvas.addEventListener('pointermove',e=>{
-    if(!drag || drag.id!==e.pointerId)return;
-    if(drag.pan){
-      const r=canvas.getBoundingClientRect(),unit=2*state.distance*Math.tan(state.fov*Math.PI/360)/r.height;
-      const right=rotate(drag.q,[1,0,0]),up=rotate(drag.q,[0,1,0]);
-      state.target=drag.target.map((v,i)=>v-(e.clientX-drag.x)*unit*right[i]+(e.clientY-drag.y)*unit*up[i]);
-    }else{
-      // 현재 포인터에서 시작점으로의 역회전은 카메라를 움직여 물체가 드래그를 따라가게 합니다.
-      const current=sphere(e),dot=current.reduce((v,x,i)=>v+x*drag.p[i],0);
-      let q=[...cross(current,drag.p),1+dot];
-      if(Math.hypot(...q)<1e-7){const axis=normalize(cross(current,Math.abs(current[0])<.9?[1,0,0]:[0,1,0]));q=[...axis,0];}
-      state.rotation=normalize(mul(drag.q,normalize(q)));
+/* d04-inspection-controls.js */
+
+window.InspectionControls = function(canvas, options = {}) {
+  const settings = {
+    zoomSpeed: 0.001,
+    rotationStep: 0.04,
+    dragRotationSpeed: 0.005,
+    panStep: 0.05, // 화면 높이의 5%만큼 키보드로 이동
+    actionDebounceMs: 200,
+    minDistance: 0.12,
+    maxDistance: 100,
+    ...options
+  };
+
+  const clampDistance = distance =>
+    Math.max(settings.minDistance, Math.min(settings.maxDistance, distance));
+
+  const clampPitch = pitch =>
+    Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, pitch));
+
+  const wrapAngle = angle => Math.atan2(Math.sin(angle), Math.cos(angle));
+
+  const state = {
+    target: [3, 3, 0],
+    distance: 30,
+    yaw: 0,
+    pitch: 0.22,
+    fov: 45,
+    actions: 0
+  };
+
+  let actionTimer = null;
+
+  function cancelPendingAction() {
+    if (actionTimer !== null) {
+      clearTimeout(actionTimer);
+      actionTimer = null;
     }
+  }
+
+  // 휠과 키 반복 입력은 입력이 멈춘 뒤 한 번만 집계합니다.
+  function debounceAction() {
+    cancelPendingAction();
+    actionTimer = setTimeout(() => {
+      actionTimer = null;
+      state.actions++;
+    }, settings.actionDebounceMs);
+  }
+
+  function home() {
+    cancelPendingAction();
+    state.target = [3, 3, 0];
+    state.distance = clampDistance(30);
+    state.yaw = 0.6;
+    state.pitch = 0.22;
+    state.fov = 45;
+  }
+
+  function viewBasis(yaw, pitch) {
+    const sinYaw = Math.sin(yaw);
+    const cosYaw = Math.cos(yaw);
+    const sinPitch = Math.sin(pitch);
+    const cosPitch = Math.cos(pitch);
+
+    return {
+      right: [cosYaw, 0, -sinYaw],
+      up: [
+        -sinPitch * sinYaw,
+        cosPitch,
+        -sinPitch * cosYaw
+      ]
+    };
+  }
+
+  function panTarget(horizontal, vertical, amount) {
+    const { right, up } = viewBasis(state.yaw, state.pitch);
+
+    state.target = state.target.map((value, index) =>
+      value +
+      horizontal * amount * right[index] +
+      vertical * amount * up[index]
+    );
+  }
+
+  let drag = null;
+
+  canvas.style.touchAction = 'none';
+  if (canvas.tabIndex < 0) canvas.tabIndex = 0;
+
+  canvas.addEventListener('contextmenu', event => event.preventDefault());
+
+  canvas.addEventListener('pointerdown', event => {
+    if (drag || ![0, 2].includes(event.button)) return;
+
+    const rect = canvas.getBoundingClientRect();
+
+    drag = {
+      id: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startYaw: state.yaw,
+      startPitch: state.pitch,
+      startTarget: [...state.target],
+      startDistance: state.distance,
+      pan: event.shiftKey || event.button === 2,
+      viewportHeight: Math.max(1, rect.height)
+    };
+
+    state.actions++;
+    canvas.focus({ preventScroll: true });
+    canvas.setPointerCapture(event.pointerId);
   });
-  for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,e=>{if(drag?.id===e.pointerId)drag=null;});
-  canvas.addEventListener('wheel',e=>{e.preventDefault();state.distance=Math.max(.12,Math.min(100,state.distance*Math.exp(e.deltaY*.001)));state.actions++;},{passive:false});
-  canvas.addEventListener('keydown',e=>{
-    if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','-','Home'].includes(e.key))return;e.preventDefault();state.actions++;
-    if(e.key==='Home'){home();return;}
-    if(e.key==='+')state.distance=Math.max(.12,state.distance/1.12);
-    else if(e.key==='-')state.distance=Math.min(100,state.distance*1.12);
-    else {const h=e.key==='ArrowLeft'?.06:e.key==='ArrowRight'?-.06:0,v=e.key==='ArrowUp'?.06:e.key==='ArrowDown'?-.06:0;state.rotation=normalize(mul(state.rotation,normalize([v,h,0,1])));}
+
+  canvas.addEventListener('pointermove', event => {
+    if (!drag || drag.id !== event.pointerId) return;
+
+    const deltaX = event.clientX - drag.startX;
+    const deltaY = event.clientY - drag.startY;
+
+    if (drag.pan) {
+      const { right, up } = viewBasis(state.yaw, state.pitch);
+      const worldPerPixel =
+        2 * drag.startDistance * Math.tan(state.fov * Math.PI / 360) /
+        drag.viewportHeight;
+
+      state.target = drag.startTarget.map((value, index) =>
+        value -
+        deltaX * worldPerPixel * right[index] +
+        deltaY * worldPerPixel * up[index]
+      );
+      return;
+    }
+
+    state.yaw = wrapAngle(
+      drag.startYaw - deltaX * settings.dragRotationSpeed
+    );
+    state.pitch = clampPitch(
+      drag.startPitch + deltaY * settings.dragRotationSpeed
+    );
   });
-  function camera(){const offset=rotate(state.rotation,[0,0,state.distance]);return {eye:state.target.map((v,i)=>v+offset[i]),target:[...state.target],up:rotate(state.rotation,[0,1,0])};}
-  return {state,home,camera};
+
+  for (const eventName of ['pointerup', 'pointercancel', 'lostpointercapture']) {
+    canvas.addEventListener(eventName, event => {
+      if (drag?.id === event.pointerId) drag = null;
+    });
+  }
+
+  canvas.addEventListener('wheel', event => {
+    event.preventDefault();
+
+    let deltaY = event.deltaY;
+    if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) deltaY *= 16;
+    if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+      deltaY *= Math.max(1, canvas.clientHeight);
+    }
+
+    state.distance = clampDistance(
+      state.distance * Math.exp(deltaY * settings.zoomSpeed)
+    );
+    debounceAction();
+  }, { passive: false });
+
+  canvas.addEventListener('keydown', event => {
+    const key = event.key.toLowerCase();
+    const step = settings.rotationStep;
+
+    if (event.key === 'Home') {
+      event.preventDefault();
+      home();
+      state.actions++;
+      return;
+    }
+
+    if (event.key === '+' || event.key === '=') {
+      event.preventDefault();
+      state.distance = clampDistance(state.distance / 1.12);
+      debounceAction();
+      return;
+    }
+
+    if (event.key === '-') {
+      event.preventDefault();
+      state.distance = clampDistance(state.distance * 1.12);
+      debounceAction();
+      return;
+    }
+
+    const isPanKey =
+      ['w', 'a', 's', 'd'].includes(key) ||
+      (event.shiftKey && event.key.startsWith('Arrow'));
+
+    if (isPanKey) {
+      event.preventDefault();
+
+      let horizontal = 0;
+      let vertical = 0;
+
+      if (key === 'a' || event.key === 'ArrowLeft') horizontal = -1;
+      if (key === 'd' || event.key === 'ArrowRight') horizontal = 1;
+      if (key === 'w' || event.key === 'ArrowUp') vertical = 1;
+      if (key === 's' || event.key === 'ArrowDown') vertical = -1;
+
+      const viewportHeight =
+        2 * state.distance * Math.tan(state.fov * Math.PI / 360);
+      panTarget(horizontal, vertical, viewportHeight * settings.panStep);
+      debounceAction();
+      return;
+    }
+
+    if (event.key === 'ArrowLeft') {
+      state.yaw = wrapAngle(state.yaw - step);
+    } else if (event.key === 'ArrowRight') {
+      state.yaw = wrapAngle(state.yaw + step);
+    } else if (event.key === 'ArrowUp') {
+      state.pitch = clampPitch(state.pitch + step);
+    } else if (event.key === 'ArrowDown') {
+      state.pitch = clampPitch(state.pitch - step);
+    } else {
+      return;
+    }
+
+    event.preventDefault();
+    debounceAction();
+  });
+
+  function camera() {
+    const cosPitch = Math.cos(state.pitch);
+    const sinPitch = Math.sin(pitch = state.pitch);
+    const cosYaw = Math.cos(state.yaw);
+    const sinYaw = Math.sin(state.yaw);
+
+    const offset = [
+      state.distance * cosPitch * sinYaw,
+      state.distance * sinPitch,
+      state.distance * cosPitch * cosYaw
+    ];
+
+    return {
+      eye: state.target.map((value, index) => value + offset[index]),
+      target: [...state.target],
+      up: [0, 1, 0]
+    };
+  }
+
+  home();
+  return { state, home, camera };
 };
