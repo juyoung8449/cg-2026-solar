@@ -67,7 +67,7 @@ function moonMatrix(t) {
   let M = M4.identity(M4.create());
   M = M4.scale(M, M, [0.0000025, 0.0000025, 0.0000025]);   // 크기(균등) 0.0000025배
   M = M4.rotateZ(M, M, deg(t * 13.2));   // 회전 Rz(t*13.2도)
-  M = M4.translate(M, M, [38440, 0, 0]);   // 이동 T(38440, 0, 0)
+  M = M4.translate(M, M, [384400, 0, 0]);   // 이동 T(384400, 0, 0)
   M = M4.rotateZ(M, M, deg(180));   // 회전 Rz(180도)
   M = M4.scale(M, M, [1737, 1737, 1737]);   // 크기 S(1737, 1737, 1737)
   return M;
@@ -79,7 +79,7 @@ function satelliteMatrix(t) {
   M = M4.scale(M, M, [0.0000025, 0.0000025, 0.0000025]);   // 크기(균등) 0.0000025배
   M = M4.rotateX(M, M, deg(53.16));   // 회전 Rx(53.16도)
   M = M4.rotateZ(M, M, deg(t * 100));   // 회전 Rz(t*100도)
-  M = M4.translate(M, M, [6840, 0, 0]);   // 이동 T(6840, 0, 0)
+  M = M4.translate(M, M, [6840.85, 0, 0]);   // 이동 T(6840.85, 0, 0)
   M = M4.scale(M, M, [0.03, 0.03, 0.03]);   // 크기 S(0.03, 0.03, 0.03)
   return M;
 }
@@ -96,7 +96,7 @@ const OBJECTS = [
 ];
 
 /* 시간이 흐르는 속도와 되돌아가는 지점 (실습 도구와 같은 규칙) */
-const T_SPEED = 2.05;
+const T_SPEED = 0.5;
 const T_MAX = 20;
 
 /* ══════════════════════════════════════════════════════════════════════════
