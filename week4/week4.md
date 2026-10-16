@@ -3,8 +3,9 @@ http://localhost:8000/week4/baseline/
 https://juyoung8449.github.io/cg-2026-solar/week4/improved/
 
 # 조작 방법
-본 프로그램은 마우스만을 이용하여 카메라를 조작한다. 좌클릭 후 드래그하면 카메라를 가로(X축)와 세로(Y축) 방향으로 이동할 수 있으며, 마우스 휠을 사용하면 앞뒤(Z축) 방향으로 이동할 수 있다.
-관찰 방향은 전면 직교 시 +Z에서 −Z 방향을 바라보도록 하고 화면의 가로축을 X, 세로축을 Y로 설정하였다. 오른쪽 측면 직교 시에는 +X에서 −X 방향을 바라보며 화면의 가로축을 Z, 세로축을 Y로 설정하였다.
+본 프로그램은 사용자가 3차원 공간 내 카메라 위치와 시점을 직관적으로 조작할 수 있도록 마우스와 키보드를 연동한 다각적인 인터페이스를 제공한다. 카메라 조작의 기본이 되는 회전 기능은 마우스 좌클릭 후 드래그하거나 키보드 방향키를 사용하여 제어하며, 관찰 대상과의 거리 조절(Zoom)은 마우스 휠 스크롤 또는 키보드의 `+`, `-` 키를 통해 손쉽게 수행할 수 있다. 또한 시점을 평행 이동할 때는 Shift 키를 누른 채 마우스를 드래그하거나 우클릭 드래그 방식을 지원하여 세밀한 위치 조정을 가능하게 하였다. 전체 관찰 시점으로 즉시 복귀하려면 `Home` 키를 활용한다.
+
+다각도 관찰 및 비교를 위해 분할 화면 모드도 함께 구현하였다. 사용자가 키보드 `F` 키를 누르면 화면이 즉시 4분할 뷰로 전환되어 서로 다른 방향의 시점을 동시에 관찰할 수 있다. 분할된 상태에서 특정 뷰를 마우스로 클릭하면 해당 화면이 전체 화면으로 확대되어 집중적으로 관찰할 수 있으며, 이 상태에서 `Esc` 키를 누르면 언제든지 다시 4분할 화면으로 원상 복귀된다.
 
 
 # 기본 버전의 지점별 관찰 결과
@@ -28,25 +29,13 @@ https://juyoung8449.github.io/cg-2026-solar/week4/improved/
 파란색이 더 돌출된다.
 
 
-# 관찰하면서 발견한 불편한 점
-수평 이동 중 의도하지 않은 회전이 발생함
-원근감을 조절해서 카메라와 물체 사이의 거리를 변경하는 기능 자체는 비교적 잘 작동한다.
-하지만 카메라를 X축 방향으로 이동하려고 해도 카메라가 함께 회전하는 현상이 발생한다.
-이 때문에 물체의 수평을 유지하면서 위치만 이동하기 어렵고, 원하는 각도를 맞추기 위해 추가적인 조작이 필요하다.
-수직 방향(Y축)으로 이동하기 어려움
-화면 위쪽에 있는 물체를 관찰하고 싶을 때 카메라를 Y축 방향으로 직접 이동하기 어렵다.
-원하는 높이로 이동하기 위해 먼저 카메라를 물체에서 멀리 떨어뜨린 뒤, 목표점을 조절하거나 Z축으로 이동한 다음 다시 X축 방향으로 조정하는 등 여러 단계를 거쳐야 한다.
-따라서 단순히 위쪽에 있는 물체를 보고 싶은 상황에서도 불필요하게 여러 번 조작해야 하는 문제가 있다.
-카메라의 수평을 유지하면서 이동하기 어려움
-이동을 하는 과정에서 카메라가 의도하지 않게 회전하기 때문에 화면의 수평을 맞추기가 어렵다.
-실제로 글씨가 있는 물체를 관찰할 때 글자를 읽을 수는 있지만, 카메라가 임의로 회전하면서 약 90도 정도 돌아간 상태에서 글자를 읽어야 하는 상황이 발생했다.
-따라서 관찰 대상의 방향을 유지한 채 위치만 이동할 수 있는 기능이 필요하다.
-원하는 관찰 위치까지 가는 과정이 번거로움
-현재 조작 방식에서는 특정 물체를 바로 찾아가는 것보다 카메라와 목표점 사이의 거리와 방향을 여러 번 조절하면서 위치를 맞춰야 한다.
-특히 위쪽이나 특정 방향에 있는 물체를 관찰할 때 이러한 문제가 크게 느껴진다.
-휠 조작과 기본 조작 횟수의 관계가 불편함
-마우스 휠을 한 번 굴리는 동작도 기본 조작 횟수로 카운트되는 것처럼 보여, 휠을 많이 사용해서 원하는 위치를 찾으면 조작 횟수가 불필요하게 증가한다.
-따라서 연속적인 휠 조작을 각각의 독립적인 조작으로 계산하기보다는, 실제 의미 있는 카메라 조작 단위로 기록하는 방식이 더 적절할 것 같다.
+# 관찰 과정에서 나타난 기존 조작 방식의 한계점
+
+기존 카메라 조작 방식에서는 원근감을 조절하여 관찰 대상과의 거리를 변경하는 기능 자체는 비교적 원활하게 작동하였으나, 세밀한 관찰 위치 탐색과 시점 유지 측면에서 여러 구조적인 불편함이 발생하였다. 가장 큰 문제는 수평(X축) 이동 과정에서 의도하지 않은 카메라 회전이 함께 일어난다는 점이었다. 이로 인해 물체의 수평 상태를 유지한 채 위치만 이동하기 어려웠으며, 실제로 간판이나 표지의 글씨를 읽을 때 카메라가 임의로 약 90도 가까이 돌아간 채 관찰해야 하는 상황이 빈번하게 발생하여 원하는 각도를 맞추기 위한 불필요한 재조작이 누적되었다.
+
+더불어 수직(Y축) 방향으로의 직관적인 이동이 제한되어 화면 상단에 위치한 대상을 관찰하기가 매우 번거로웠다. 목표 지점을 원하는 높이에서 보기 위해서는 먼저 카메라를 대상과 멀리 떨어뜨린 후 목표점을 재설정하거나, Z축 이동 후 다시 X축 방향을 조정하는 등 여러 번거로운 단계를 거쳐야만 했다. 특히 건물 내 특정 간판이나 장치를 찾기 위해 카메라를 반복적으로 회전, 확대, 축소하는 과정에서 많은 시간과 조작력이 소모되었으며, 관찰 대상까지 바로 접근하지 못하고 거리와 방향을 계속해서 미세 조정해야 하는 문제가 도드라졌다.
+
+또한 조작 횟수 측정 방식에서도 개선점이 확인되었다. 원하는 관찰 지점을 찾아가는 동안 연속적으로 사용하는 마우스 휠 조작이 개별적인 독립 조작으로 카운트되어 불필요하게 조작 횟수를 증가시키는 결과를 초래하였다. 따라서 단순 휠 스크롤을 의미 있는 조작 단위로 묶어 기록하는 방식의 개선과 함께, 간판 탐색을 위해 무분별한 회전 및 확대/축소를 반복해야 했던 문제를 구조적으로 해결하기 위해 다각도 시점을 동시에 제공하는 4분할 화면 기능의 추가가 필요함을 확인하였다.
 
 # 1. 사용자 및 관찰 목표
 사용자
@@ -198,30 +187,127 @@ canvas.addEventListener('pointermove', e => {
 });
 
 
-#대표코드3( 휠 줌 및 키보드 조작)
-// 마우스 휠 줌 (거리 조절)
-canvas.addEventListener('wheel', e => {
-  e.preventDefault();
+#대표코드3(4분할)
+const viewTarget = [3, 4.5, 0];
 
-  // 거리 한계점 제한 (0.12 ~ 100)
-  state.distance = Math.max(
-    0.12,
-    Math.min(
-      100,
-      state.distance * Math.exp(e.deltaY * 0.001)
-    )
-  );
+const fixedViews = {
+  top: {
+    eye: [3, 32, 0],
+    target: viewTarget,
+    up: [0, 0, -1],
+    orthographic: true,
+    halfHeight: 8.5
+  },
+  left: {
+    eye: [-28, 4.5, 0],
+    target: viewTarget,
+    up: [0, 1, 0],
+    orthographic: true,
+    halfHeight: 8.5
+  },
+  right: {
+    eye: [34, 4.5, 0],
+    target: viewTarget,
+    up: [0, 1, 0],
+    orthographic: true,
+    halfHeight: 8.5
+  }
+};
 
-  if (wheelTimer === null) state.actions++;
-  clearTimeout(wheelTimer);
-  wheelTimer = setTimeout(() => { wheelTimer = null; }, 250);
-}, { passive: false });
+const focusedViewStates = {
+  top: { target: [...viewTarget], distance: 28, yaw: 0, pitch: 1.48 },
+  left: { target: [...viewTarget], distance: 28, yaw: -Math.PI / 2, pitch: 0 },
+  right: { target: [...viewTarget], distance: 31, yaw: Math.PI / 2, pitch: 0 }
+};
 
-// Home 키 입력 시 초기화
-canvas.addEventListener('keydown', e => {
-  if (e.key !== 'Home') return;
-  e.preventDefault();
-  state.actions++;
-  home(); // 초기 위치로 복구
+let splitView = false;
+let returnToSplit = false;
+let savedCameraState = null;
+
+function drawSplitViews(width, height) {
+  const leftWidth = Math.floor(width / 2);
+  const bottomHeight = Math.floor(height / 2);
+  const rightWidth = width - leftWidth;
+  const topHeight = height - bottomHeight;
+
+  // 캔버스 뷰포트 좌표의 원점은 왼쪽 아래입니다.
+  drawView(controls.camera(), [0, bottomHeight, leftWidth, topHeight]);
+  drawView(fixedViews.top, [leftWidth, bottomHeight, rightWidth, topHeight]);
+  drawView(fixedViews.left, [0, 0, leftWidth, bottomHeight]);
+  drawView(fixedViews.right, [leftWidth, 0, rightWidth, bottomHeight]);
+}
+
+function toggleSplit() {
+  const viewport = document.querySelector('.viewport');
+
+  if (splitView) {
+    splitView = false;
+    returnToSplit = false;
+    viewport.classList.remove('split');
+
+    if (savedCameraState) {
+      Object.assign(controls.state, savedCameraState);
+      savedCameraState = null;
+    }
+    return;
+  }
+
+  if (returnToSplit) {
+    returnToSplit = false;
+    splitView = true;
+    viewport.classList.add('split');
+
+    if (savedCameraState) {
+      Object.assign(controls.state, savedCameraState);
+      savedCameraState = null;
+    }
+    return;
+  }
+
+  splitView = true;
+  viewport.classList.add('split');
+}
+
+// F 키: 4분할 전환. 확대 상태에서는 4분할로 돌아갑니다.
+// Esc 키: 원래 화면으로 복귀합니다.
+window.addEventListener('keydown', event => {
+  if (event.key.toLowerCase() === 'f') {
+    event.preventDefault();
+    toggleSplit();
+  } else if (event.key === 'Escape' && (splitView || returnToSplit)) {
+    event.preventDefault();
+    toggleSplit();
+  }
 });
 
+// 분할 화면을 클릭하면 해당 시점으로 확대합니다.
+canvas.addEventListener('pointerup', event => {
+  if (!pointerStart || !splitView) return;
+
+  const moved = Math.hypot(
+    event.clientX - pointerStart.x,
+    event.clientY - pointerStart.y
+  );
+  pointerStart = null;
+  if (moved > 5) return;
+
+  const rect = canvas.getBoundingClientRect();
+  const x = (event.clientX - rect.left) / rect.width;
+  const y = (event.clientY - rect.top) / rect.height;
+
+  const name = y < 0.5
+    ? (x < 0.5 ? 'original' : 'top')
+    : (x < 0.5 ? 'left' : 'right');
+
+  if (name !== 'original') {
+    savedCameraState = {
+      ...controls.state,
+      target: [...controls.state.target]
+    };
+    Object.assign(controls.state, focusedViewStates[name]);
+  }
+
+  splitView = false;
+  returnToSplit = true;
+  document.querySelector('.viewport').classList.remove('split');
+});
