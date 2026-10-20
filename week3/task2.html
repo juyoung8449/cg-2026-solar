@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>3주차 실습 2 — 오로라 행성과 핑크 가스 행성</title>
+<title>3주차 실습 2 — 오로라 점광원 행성과 핑크 가스 위성</title>
 <style>
   html, body {
     margin: 0;
@@ -120,6 +120,50 @@ function makeSphere(radius, rows, cols, red, green, blue) {
   };
 }
 
+function makeRing(innerRadius, outerRadius, rows, cols) {
+  const positions = [];
+  const normals = [];
+  const colors = [];
+  const indices = [];
+
+  for (let i = 0; i <= rows; i++) {
+    const t = i / rows;
+    const radius = innerRadius + (outerRadius - innerRadius) * t;
+
+    for (let j = 0; j <= cols; j++) {
+      const theta = 2 * Math.PI * j / cols;
+      const red = 0.5 + 0.5 * Math.cos(theta);
+      const green = 0.5 + 0.5 * Math.cos(theta - 2 * Math.PI / 3);
+      const blue = 0.5 + 0.5 * Math.cos(theta - 4 * Math.PI / 3);
+      positions.push(
+        Math.cos(theta) * radius,
+        0,
+        Math.sin(theta) * radius
+      );
+      normals.push(0, 1, 0);
+      colors.push(red, green, blue);
+    }
+  }
+
+  const stride = cols + 1;
+
+  for (let i = 0; i < rows; i++) {
+    for (let j = 0; j < cols; j++) {
+      const inner = i * stride + j;
+      const outer = inner + stride;
+      indices.push(inner, outer, inner + 1);
+      indices.push(inner + 1, outer, outer + 1);
+    }
+  }
+
+  return {
+    positions: new Float32Array(positions),
+    normals: new Float32Array(normals),
+    colors: new Float32Array(colors),
+    indices: new Uint16Array(indices),
+  };
+}
+
 
 /* ══════════════════════════════════════════════════════════════════════════
    2. 버텍스 & 프래그먼트 셰이더
@@ -138,18 +182,21 @@ uniform mat4  uViewProj;
 out vec3 vColor;
 out vec3 vNormal;
 out vec3 vSurf;
+out vec3 vWorldPos;
 
 void main() {
   vColor  = aColor;
+  vec4 worldPos = uModel * vec4(aPos, 1.0);
 
   // 법선을 월드 기준으로 변환하여 조명에 사용
   vNormal = mat3(uModel) * aNormal;
+  vWorldPos = worldPos.xyz;
 
   // 물체 기준 좌표.
   // 행성이 회전해도 무늬가 행성 표면에 붙어 있는 것처럼 보인다.
   vSurf = aNormal;
 
-  gl_Position = uViewProj * uModel * vec4(aPos, 1.0);
+  gl_Position = uViewProj * worldPos;
 }
 `;
 
@@ -159,7 +206,7 @@ void main() {
  *
  * 과제 조건
  * ① 표면 무늬를 프래그먼트 셰이더에서 계산
- * ② uPlanetType uniform으로 서로 다른 두 행성 표현
+ * ② uPlanetType uniform으로 두 행성과 고리 표현
  * ③ uTime으로 오로라와 행성 회전 애니메이션
  * ④ dot(N, L)을 이용한 조명
  */
@@ -170,11 +217,16 @@ precision highp float;
 in vec3 vColor;
 in vec3 vNormal;
 in vec3 vSurf;
+in vec3 vWorldPos;
 
 uniform float uTime;
+uniform vec3 uPointLightPosition;
+uniform vec3 uPointLightColor;
+uniform vec3 uCameraPosition;
 
 // 0.0 = 보라색 오로라 행성
-// 1.0 = 따뜻한 암석 행성
+// 1.0 = 핑크색 가스 위성
+// 2.0 = 행성 고리
 uniform float uPlanetType;
 
 out vec4 fragColor;
@@ -266,7 +318,7 @@ void main() {
 
   // 법선과 광원 방향
   vec3 N = normalize(vNormal);
-  vec3 L = normalize(vec3(0.45, 0.8, 0.35));
+  vec3 L = normalize(vec3(0.45, 0.12, 0.35));
 
   // 과제 조건: dot(N, L)을 이용한 조명
   float diff = max(dot(N, L), 0.0);
@@ -346,33 +398,10 @@ void main() {
 
 
   /* ============================================================
-     행성 2 : 핑크색 가스 행성 + 민트색 가로 띠
+     위성 : 핑크색 가스 천체
      ============================================================ */
 
-  else {
-
-    // 가스 행성의 위도(latitude)를 이용해
-    // 행성 표면을 가로로 흐르는 띠를 만든다.
-    float lat = asin(clamp(vSurf.y, -1.0, 1.0));
-
-    // FBM으로 띠의 경계를 자연스럽게 흔든다.
-    float bandNoise =
-      fbm(
-        vSurf * 2.8 +
-        vec3(4.0, 1.5, uTime * 0.015)
-      );
-
-    // 위도 방향의 반복 패턴.
-    // sin()의 주기를 이용해 여러 개의 가로 띠를 만든다.
-    float bands =
-      0.5 +
-      0.5 * sin(
-        lat * 18.0 +
-        (bandNoise - 0.5) * 2.8
-      );
-
-    // 띠를 조금 부드럽게 만들어 가스 행성처럼 표현
-    bands = smoothstep(0.38, 0.62, bands);
+  else if (uPlanetType < 1.5) {
 
     // 핑크색 가스 행성의 기본 색
     vec3 pinkDark  = vec3(0.34, 0.10, 0.20);
@@ -400,40 +429,6 @@ void main() {
         smoothstep(0.60, 0.86, pinkNoise)
       );
 
-    // 민트색 가로 띠
-    vec3 mintDark  = vec3(0.32, 0.68, 0.60);
-    vec3 mintLight = vec3(0.72, 1.00, 0.88);
-
-    vec3 mintBand =
-      mix(
-        mintDark,
-        mintLight,
-        smoothstep(0.35, 0.75, bandNoise)
-      );
-
-    // 민트 띠와 핑크 표면을 자연스럽게 섞는다.
-    albedo =
-      mix(
-        albedo,
-        mintBand,
-        bands * 0.82
-      );
-
-    // 가스 흐름처럼 보이도록 가로 방향의 미세한 왜곡
-    float flow =
-      0.5 +
-      0.5 * sin(
-        lat * 42.0 +
-        fbm(vSurf * 5.0) * 3.0 +
-        uTime * 0.35
-      );
-
-    albedo +=
-      mintLight *
-      bands *
-      flow *
-      0.08;
-
     // 가스 행성의 가장자리에는 은은한 대기광
     float atmosphere =
       pow(
@@ -441,14 +436,31 @@ void main() {
         2.5
       );
 
+    vec3 lightOffset = uPointLightPosition - vWorldPos;
+    float lightDistance = length(lightOffset);
+    vec3 lightDirection = lightOffset / max(lightDistance, 0.0001);
+    float attenuation =
+      1.0 / (1.0 + 0.18 * lightDistance + 0.08 * lightDistance * lightDistance);
+    float diffuse = max(dot(N, lightDirection), 0.0);
+    vec3 viewDirection = normalize(uCameraPosition - vWorldPos);
+    vec3 halfDirection = normalize(lightDirection + viewDirection);
+    float specular = pow(max(dot(N, halfDirection), 0.0), 56.0);
+
     vec3 color =
-      albedo * (0.24 + 0.76 * diff);
+      albedo * (vec3(0.30) + uPointLightColor * diffuse * attenuation * 3.0)
+      + uPointLightColor * specular * attenuation * 3.6;
 
-    color +=
-      vec3(0.55, 0.80, 0.72) *
-      atmosphere *
-      0.18;
+    color += uPointLightColor * atmosphere * 0.18;
 
+    fragColor = vec4(color, 1.0);
+  }
+
+  else {
+    vec3 color = vColor * (0.3 + 0.7 * diff);
+    color += vec3(0.35, 0.45, 0.55) * pow(
+      max(dot(reflect(-L, N), vec3(0.0, 0.0, 1.0)), 0.0),
+      18.0
+    );
     fragColor = vec4(color, 1.0);
   }
 }
@@ -537,6 +549,13 @@ const uModelLoc =
 
 const uViewProjLoc =
   gl.getUniformLocation(program, 'uViewProj');
+
+const uPointLightPositionLoc =
+  gl.getUniformLocation(program, 'uPointLightPosition');
+const uPointLightColorLoc =
+  gl.getUniformLocation(program, 'uPointLightColor');
+const uCameraPositionLoc =
+  gl.getUniformLocation(program, 'uCameraPosition');
 
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -697,10 +716,10 @@ function createMesh(mesh) {
 
 
 /*
- * 행성 2개
+ * 천체 2개
  *
  * ball1 = 보라/블루 오로라 행성
- * ball2 = 따뜻한 화산성 암석 행성
+ * ball2 = 핑크색 가스 행성
  */
 const ball1 = createMesh(
   makeSphere(
@@ -721,6 +740,15 @@ const ball2 = createMesh(
     0.95,
     0.45,
     0.65
+  )
+);
+
+const ring2 = createMesh(
+  makeRing(
+    0.68,
+    1.02,
+    48,
+    128
   )
 );
 
@@ -896,7 +924,7 @@ function render() {
 
 
   /* ═══════════════════════════════════════════════════════════
-     행성 1
+     점광원 행성
 
      - 큰 보라/블루 암석 행성
      - 네온 오로라
@@ -911,7 +939,7 @@ function render() {
   );
 
   // 오로라 행성은 공전의 중심에 둔다.
-  // 자전만 하도록 하여 갈색 행성이 이 행성을 중심으로 공전한다.
+  // 자전만 하도록 하여 핑크색 행성이 이 행성을 중심으로 공전한다.
   let model1 =
     M4.multiply(
       M4.translate(
@@ -941,23 +969,41 @@ function render() {
 
 
   /* ═══════════════════════════════════════════════════════════
-     행성 2
+     위성
 
      - 작은 핑크색 가스 행성
-     - 민트색 가로 띠가 위도 방향으로 흐름
-     - 가스층이 시간에 따라 미세하게 움직임
-     - 오로라 행성을 중심으로 큰 반지름으로 공전
+     - 자전과 공전을 함께하는 납작한 고리
+     - 점광원 행성을 중심으로 큰 반지름으로 공전
      - 공전하면서 자체 회전
      ═══════════════════════════════════════════════════════════ */
 
   // 같은 프래그먼트 셰이더에서
-  // uPlanetType = 1 으로 두 번째 행성 선택
+  // uPlanetType = 1 으로 위성 셰이더 선택
   gl.uniform1f(
     uPlanetTypeLoc,
     1.0
   );
+  gl.uniform3f(
+    uPointLightPositionLoc,
+    0,
+    1.75,
+    0
+  );
+  gl.uniform3f(
+    uPointLightColorLoc,
+    0.42,
+    0.95,
+    0.78
+  );
+  const cameraYaw = time * 0.12;
+  gl.uniform3f(
+    uCameraPositionLoc,
+    -Math.sin(cameraYaw) * 8 * Math.cos(0.5),
+    1.1 + 8 * Math.sin(0.5),
+    Math.cos(cameraYaw) * 8 * Math.cos(0.5)
+  );
 
-  // 갈색 행성의 공전 반지름을 크게 설정한다.
+  // 핑크색 위성의 공전 반지름을 크게 설정한다.
   // 기존 약 0.95에서 2.25로 늘려 오로라 행성과
   // 공전 위치가 겹치지 않도록 했다.
   const orbitRadius = 2.25;
@@ -978,10 +1024,30 @@ function render() {
       M4.rotateY(time * -0.55)
     );
 
+  gl.uniform1f(
+    uPlanetTypeLoc,
+    2.0
+  );
   gl.uniformMatrix4fv(
     uModelLoc,
     false,
     model2
+  );
+
+  gl.bindVertexArray(
+    ring2.vao
+  );
+
+  gl.drawElements(
+    gl.TRIANGLES,
+    ring2.count,
+    gl.UNSIGNED_SHORT,
+    0
+  );
+
+  gl.uniform1f(
+    uPlanetTypeLoc,
+    1.0
   );
 
   gl.bindVertexArray(

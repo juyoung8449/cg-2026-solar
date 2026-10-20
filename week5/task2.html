@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5주차 실습 2 — 태양계와 별똥별</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #050712; }
+  canvas { display: block; width: 100vw; height: 100vh; touch-action: none; }
+  #hint { position: fixed; left: 12px; bottom: 12px; margin: 0;
+          color: #9fb0c8; font: 12px/1.6 ui-monospace, Menlo, Consolas, monospace; }
+  #light-controls { position: fixed; top: 12px; left: 12px; margin: 0;
+          padding: 8px 12px; border: 1px solid rgba(159, 176, 200, 0.2);
+          border-radius: 8px; background: rgba(5, 7, 18, 0.72);
+          color: #c6d6ee; font: 12px/1.6 ui-monospace, Menlo, Consolas, monospace;
+          pointer-events: none; }
+  #light-status { color: #8ea5c5; }
+</style>
+</head>
+<body>
+<canvas id="glcanvas"></canvas>
+<p id="hint">드래그 = 시점 회전 · 휠 = 확대/축소</p>
+<p id="light-controls">
+  숫자 키 [1] 태양 광원 | [2] 별똥별 광원 | [3] 펄서 광원 (On/Off 토글)<br>
+  <span id="light-status">태양 On · 별똥별 On · 펄서 On</span>
+</p>
+
+<script>
+'use strict';
+
+function makeSphere(seg) {
+  const positions = [], normals = [], indices = [];
+  for (let i = 0; i <= seg; i++) {
+    const phi = Math.PI * i / seg;
+    for (let j = 0; j <= seg * 2; j++) {
+      const th = 2 * Math.PI * j / (seg * 2);
+      const x = Math.sin(phi) * Math.cos(th);
+      const y = Math.cos(phi);
+      const z = Math.sin(phi) * Math.sin(th);
+      positions.push(x, y, z);
+      normals.push(x, y, z);
+    }
+  }
+  const W = seg * 2 + 1;
+  for (let i = 0; i < seg; i++) {
+    for (let j = 0; j < seg * 2; j++) {
+      const a = i * W + j, b = a + W;
+      indices.push(a, b, a + 1, a + 1, b, b + 1);
+    }
+  }
+  return { positions: new Float32Array(positions),
+           normals:   new Float32Array(normals),
+           indices:   new Uint16Array(indices) };
+}
+
+function makeJet(segments, length, radius) {
+  const positions = [], normals = [], indices = [];
+  for (let i = 0; i < segments; i++) {
+    const angle0 = 2 * Math.PI * i / segments;
+    const angle1 = 2 * Math.PI * (i + 1) / segments;
+    const base0 = [Math.cos(angle0) * radius, 0, Math.sin(angle0) * radius];
+    const base1 = [Math.cos(angle1) * radius, 0, Math.sin(angle1) * radius];
+    const normal0 = [Math.cos(angle0), radius / length, Math.sin(angle0)];
+    const normal1 = [Math.cos(angle1), radius / length, Math.sin(angle1)];
+    const baseIndex = positions.length / 3;
+    positions.push(...base0, ...base1, 0, length, 0);
+    normals.push(...normal0, ...normal1, ...normal0);
+    indices.push(baseIndex, baseIndex + 1, baseIndex + 2);
+  }
+  return {
+    positions: new Float32Array(positions),
+    normals: new Float32Array(normals),
+    indices: new Uint16Array(indices),
+  };
+}
+
+const VS_SOURCE = `#version 300 es
+
+layout(location=0) in vec3 aPos;
+layout(location=1) in vec3 aNormal;
+
+uniform mat4 uModel, uView, uProj;
+uniform mat3 uNormalMat;
+
+out vec3 vWorldPos;
+out vec3 vNormal;
+out vec3 vSurf;
+
+void main() {
+  vec4 world = uModel * vec4(aPos, 1.0);
+  vWorldPos  = world.xyz;
+  vNormal = normalize(uNormalMat * aNormal);  // 비균등 스케일에서도 표면 법선 보정
+  vSurf = aPos;
+  gl_Position = uProj * uView * world;
+}
+`;
+
+const METEOR_VS_SOURCE = `#version 300 es
+void main() {
+  vec2 position = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
+  gl_Position = vec4(position * 2.0 - 1.0, 0.0, 1.0);
+}
+`;
+
+const METEOR_FS_SOURCE = `#version 300 es
+precision highp float;
+uniform vec2 uResolution;
+uniform float uTime;
+uniform vec3 uLightEnable;
+out vec4 fragColor;
+
+float hash21(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / uResolution;
+  vec2 point = vec2(uv.x * uResolution.x / uResolution.y, uv.y);
+  vec2 starCell = floor(gl_FragCoord.xy / 90.0);
+  vec2 starPixel = (starCell + vec2(
+    hash21(starCell),
+    hash21(starCell + vec2(13.0, 29.0))
+  )) * 90.0;
+  float starChance = step(0.96, hash21(starCell + vec2(41.0, 7.0)));
+  float stars = starChance
+    * exp(-dot(gl_FragCoord.xy - starPixel, gl_FragCoord.xy - starPixel) * 0.018);
+
+  float cycleTime = mod(uTime, 5.0);
+  float progress = clamp(cycleTime / 0.82, 0.0, 1.0);
+  float eventFade = (1.0 - smoothstep(0.72, 0.82, cycleTime))
+    * smoothstep(0.0, 0.035, cycleTime);
+
+  vec2 start = vec2(-0.15 * uResolution.x / uResolution.y, 1.12);
+  vec2 end = vec2(1.15 * uResolution.x / uResolution.y, -0.12);
+  vec2 travel = end - start;
+  float travelLength = length(travel);
+  vec2 direction = travel / travelLength;
+  vec2 head = start + direction * progress * travelLength;
+  vec2 fromHead = point - head;
+  float alongTrail = dot(fromHead, direction);
+  float acrossTrail = abs(fromHead.x * direction.y - fromHead.y * direction.x);
+
+  float tailFade = exp(min(alongTrail, 0.0) * 5.5)
+    * (1.0 - smoothstep(-0.9, -0.72, alongTrail))
+    * (1.0 - smoothstep(0.004, 0.028, acrossTrail));
+  float headGlow = exp(-alongTrail * alongTrail * 180.0
+    - acrossTrail * acrossTrail * 950.0);
+  float trail = eventFade * (tailFade * 0.85 + headGlow * 1.7)
+    * uLightEnable.y;
+  vec3 background = vec3(0.005, 0.007, 0.018)
+    + vec3(0.35, 0.55, 0.8) * stars * 0.8;
+  vec3 meteorColor = vec3(0.8, 0.95, 1.0);
+  fragColor = vec4(background + meteorColor * trail, 1.0);
+}
+`;
+
+const FS_SOURCE = `#version 300 es
+precision highp float;
+
+in vec3 vWorldPos;
+in vec3 vNormal;
+in vec3 vSurf;
+
+uniform vec3  uBaseColor;
+uniform vec3  uLightPos;
+uniform vec3  uPulsarPos;
+uniform vec3  uMeteorPos;
+uniform vec3  uFlareDirection;
+uniform vec3  uDirectionalDir;
+uniform vec3  uViewPos;
+uniform float uShininess;
+uniform float uPlanetType;
+uniform float uPulsarBeam;
+uniform float uSunRotation;
+uniform float uMeteorIntensity;
+uniform float uTime;
+uniform vec3 uLightEnable;
+
+out vec4 fragColor;
+
+float hash31(vec3 p) {
+  p = fract(p * 0.3183099 + vec3(0.71, 0.113, 0.419));
+  p *= 17.0;
+  return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+}
+
+float noise3(vec3 p) {
+  vec3 i = floor(p);
+  vec3 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+
+  return mix(
+    mix(
+      mix(hash31(i), hash31(i + vec3(1, 0, 0)), f.x),
+      mix(hash31(i + vec3(0, 1, 0)), hash31(i + vec3(1, 1, 0)), f.x),
+      f.y
+    ),
+    mix(
+      mix(hash31(i + vec3(0, 0, 1)), hash31(i + vec3(1, 0, 1)), f.x),
+      mix(hash31(i + vec3(0, 1, 1)), hash31(i + vec3(1, 1, 1)), f.x),
+      f.y
+    ),
+    f.z
+  );
+}
+
+float fbm(vec3 p) {
+  float value = 0.0;
+  float amplitude = 0.5;
+  for (int octave = 0; octave < 5; octave++) {
+    value += amplitude * noise3(p);
+    p = p * 2.03 + vec3(1.7, 9.2, 3.4);
+    amplitude *= 0.5;
+  }
+  return value;
+}
+
+vec3 domainWarp(vec3 p) {
+  vec3 warp = vec3(
+    fbm(p + vec3(0.0, 0.0, 0.0)),
+    fbm(p + vec3(5.2, 1.3, 2.8)),
+    fbm(p + vec3(1.7, 9.2, 3.1))
+  );
+  return p + (warp - 0.5) * 1.7;
+}
+
+void main() {
+  vec3 N = normalize(vNormal);
+  vec3 V = normalize(uViewPos - vWorldPos);
+
+  if (uPlanetType < 0.5) {
+    vec3 surface = normalize(vSurf);
+    float rotationCos = cos(uSunRotation);
+    float rotationSin = sin(uSunRotation);
+    N = normalize(vec3(
+      rotationCos * surface.x + rotationSin * surface.z,
+      surface.y,
+      -rotationSin * surface.x + rotationCos * surface.z
+    ));
+    vec3 flow = vec3(uTime * 0.018, uTime * 0.035, -uTime * 0.012);
+    vec3 warped = domainWarp(surface * 3.2 + flow);
+    float convection = fbm(warped * 1.6 + flow * 0.45);
+    float sunspot = fbm(warped * 1.25 - flow * 0.3);
+    float flarePulse = 0.72 + 0.28 * sin(uTime * 1.4);
+    float flareCore = fbm(warped * 2.8 + flow * 1.7);
+    float flare = flarePulse
+      * smoothstep(0.62, 0.88, flareCore)
+      * smoothstep(0.82, 0.95, dot(surface, normalize(uFlareDirection)));
+
+    float facing = max(dot(N, V), 0.0);
+    float volume = smoothstep(0.02, 0.92, facing);
+    float rimShadow = 1.0 - smoothstep(0.0, 0.72, facing);
+    vec3 darkRed = vec3(0.5, 0.1, 0.0);
+    vec3 orange = vec3(1.0, 0.4, 0.05);
+    vec3 hotWhite = vec3(1.1, 0.9, 0.5);
+    float spotThreshold = smoothstep(0.28, 0.62, sunspot);
+    vec3 solarSurface = mix(
+      darkRed,
+      orange,
+      spotThreshold
+    );
+    float heat = smoothstep(0.34, 0.72, convection);
+    float coreHeat = volume * (0.55 + heat * 0.45);
+    solarSurface = mix(solarSurface, hotWhite, coreHeat * 0.9);
+    solarSurface += hotWhite * flare * 0.9;
+    solarSurface *= mix(0.28, 1.0, volume);
+
+    float fresnel = pow(1.0 - facing, 4.0);
+    vec3 corona = vec3(1.0, 0.48, 0.08) * fresnel * 0.75;
+    vec3 selfShadow = mix(darkRed * 0.35, solarSurface, volume);
+    fragColor = vec4((selfShadow + corona) * uLightEnable.x, 1.0);
+    return;
+  }
+
+  float pulsarPulse = 0.12
+    + 0.88 * pow(abs(sin(uTime * 12.0)), 10.0);
+  if (uPlanetType > 2.5 && uPlanetType < 3.5) {
+    float spin = uTime * 3.0;
+    float rotationCos = cos(spin);
+    float rotationSin = sin(spin);
+    vec3 rotatingSurface = vec3(
+      rotationCos * vSurf.x + rotationSin * vSurf.z,
+      vSurf.y,
+      -rotationSin * vSurf.x + rotationCos * vSurf.z
+    );
+    vec3 magneticAxis = normalize(vec3(
+      0.28 * sin(spin),
+      1.0,
+      0.28 * cos(spin)
+    ));
+    float beamNoise = fbm(rotatingSurface * vec3(9.0, 2.8, 9.0)
+      + vec3(0.0, uTime * 0.7, 0.0));
+    if (uPulsarBeam > 0.5) {
+      float beamEnvelope = pow(max(1.0 - vSurf.y, 0.0), 1.4);
+      float filaments = pow(
+        smoothstep(0.26, 0.78, beamNoise),
+        2.2
+      );
+      float beamFlicker = 0.62 + 0.38 * sin(uTime * 24.0 + vSurf.y * 16.0);
+      vec3 beamColor = mix(
+        vec3(0.08, 0.3, 0.95),
+        vec3(0.48, 0.9, 1.3),
+        filaments
+      );
+      fragColor = vec4(
+        beamColor * beamEnvelope * pulsarPulse * beamFlicker * 2.2
+          * uLightEnable.z,
+        1.0
+      );
+      return;
+    }
+
+    float magneticAlignment = abs(dot(normalize(rotatingSurface), magneticAxis));
+    float beamCap = pow(magneticAlignment, 36.0);
+    float coreNoise = fbm(rotatingSurface * 13.0 + uTime * 0.3);
+    float coreFlicker = 0.82 + 0.18 * coreNoise;
+    float coreRim = pow(1.0 - max(dot(N, V), 0.0), 3.0);
+    vec3 coreColor = vec3(0.6, 0.85, 1.2) * (1.0 + beamCap * 0.8);
+    coreColor += vec3(0.15, 0.5, 1.0) * coreRim * 1.8;
+    fragColor = vec4(
+      coreColor * pulsarPulse * coreFlicker * 2.3 * uLightEnable.z,
+      1.0
+    );
+    return;
+  }
+
+  vec3 baseColor = uBaseColor;
+  if (uPlanetType > 3.5) {
+    float terrain = fbm(vSurf * 5.5 + vec3(2.4, 7.1, 1.8));
+    baseColor *= mix(0.38, 1.25, smoothstep(0.22, 0.78, terrain));
+  }
+
+  vec3 pointOffset = uLightPos - vWorldPos;
+  float pointDistance = length(pointOffset);
+  vec3 pointDir = pointOffset / max(pointDistance, 0.0001);
+  float attenuation = 1.0 / (1.0 + 0.12 * pointDistance
+    + 0.08 * pointDistance * pointDistance);
+  vec3 directionalDir = normalize(uDirectionalDir);
+
+  const vec3 ambientColor = vec3(0.08, 0.05, 0.12);
+  const vec3 pointLightColor = vec3(1.0, 0.92, 0.75);
+  const vec3 directionalLightColor = vec3(0.15, 0.35, 0.65);
+
+  float pointDiffuse = max(dot(N, pointDir), 0.0)
+    * attenuation * uLightEnable.x;
+  float directionalDiffuse = max(dot(N, directionalDir), 0.0);
+  float diffuseStrength = pointDiffuse + directionalDiffuse;
+  float pointDiffuseMix = pointDiffuse / max(diffuseStrength, 0.0001);
+  vec3 diffuseColor = mix(
+    directionalLightColor,
+    pointLightColor,
+    pointDiffuseMix
+  );
+
+  float pointSpecular = pow(
+    max(dot(reflect(-pointDir, N), V), 0.0),
+    uShininess
+  ) * attenuation;
+  pointSpecular *= uLightEnable.x;
+  float directionalSpecular = pow(
+    max(dot(reflect(-directionalDir, N), V), 0.0),
+    uShininess
+  );
+  float specularStrength = pointSpecular + directionalSpecular;
+  float pointSpecularMix = pointSpecular / max(specularStrength, 0.0001);
+  vec3 specularColor = mix(
+    directionalLightColor,
+    pointLightColor,
+    pointSpecularMix
+  );
+
+  vec3 ambient = ambientColor * baseColor;
+  vec3 diffuse = diffuseColor * diffuseStrength * baseColor;
+  vec3 specular = specularColor * specularStrength * 0.35;
+
+  vec3 meteorOffset = uMeteorPos - vWorldPos;
+  float meteorDistance = length(meteorOffset);
+  vec3 meteorDirection = meteorOffset / max(meteorDistance, 0.0001);
+  float meteorAttenuation = 1.0 / (1.0 + 0.16 * meteorDistance
+    + 0.12 * meteorDistance * meteorDistance);
+  float meteorDiffuse = max(dot(N, meteorDirection), 0.0)
+    * meteorAttenuation * uMeteorIntensity * uLightEnable.y;
+  float meteorSpecular = pow(
+    max(dot(reflect(-meteorDirection, N), V), 0.0),
+    uShininess
+  ) * meteorAttenuation * uMeteorIntensity * uLightEnable.y;
+  vec3 meteorLight = vec3(0.8, 0.95, 1.0);
+  vec3 pulsarOffset = uPulsarPos - vWorldPos;
+  float pulsarDistance = length(pulsarOffset);
+  vec3 pulsarDirection = pulsarOffset / max(pulsarDistance, 0.0001);
+  float pulsarAttenuation = 1.0 / (1.0 + 0.12 * pulsarDistance
+    + 0.07 * pulsarDistance * pulsarDistance);
+  float pulsarDiffuse = max(dot(N, pulsarDirection), 0.0)
+    * pulsarAttenuation * pulsarPulse * 2.8 * uLightEnable.z;
+  float pulsarSpecular = pow(
+    max(dot(reflect(-pulsarDirection, N), V), 0.0),
+    uShininess
+  ) * pulsarAttenuation * pulsarPulse * 3.2 * uLightEnable.z;
+  vec3 pulsarLight = vec3(0.24, 0.58, 1.0);
+  fragColor = vec4(
+    ambient + diffuse + specular
+      + baseColor * meteorLight * meteorDiffuse
+      + meteorLight * meteorSpecular * 0.45,
+    1.0
+  );
+  fragColor.rgb += baseColor * pulsarLight * pulsarDiffuse
+    + pulsarLight * pulsarSpecular;
+}
+`;
+
+const Mat4 = {
+  identity: function () {
+    return new Float32Array([1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]);
+  },
+  multiply: function (a, b) {
+    const o = new Float32Array(16);
+    for (let c = 0; c < 4; c++) {
+      for (let r = 0; r < 4; r++) {
+        let s = 0;
+        for (let k = 0; k < 4; k++) s += a[k * 4 + r] * b[c * 4 + k];
+        o[c * 4 + r] = s;
+      }
+    }
+    return o;
+  },
+  translate: function (x, y, z) {
+    const m = Mat4.identity(); m[12] = x; m[13] = y; m[14] = z; return m;
+  },
+  scale: function (x, y, z) {
+    const m = Mat4.identity(); m[0] = x; m[5] = y; m[10] = z; return m;
+  },
+  rotateY: function (r) {
+    const m = Mat4.identity(), c = Math.cos(r), s = Math.sin(r);
+    m[0] = c; m[2] = -s; m[8] = s; m[10] = c; return m;
+  },
+  rotateZ: function (r) {
+    const m = Mat4.identity(), c = Math.cos(r), s = Math.sin(r);
+    m[0] = c; m[1] = s; m[4] = -s; m[5] = c; return m;
+  },
+  perspective: function (fovy, aspect, near, far) {
+    const f = 1 / Math.tan(fovy / 2), nf = 1 / (near - far);
+    return new Float32Array([f / aspect,0,0,0, 0,f,0,0,
+                             0,0,(far + near) * nf,-1, 0,0,2 * far * near * nf,0]);
+  },
+  lookAt: function (eye, center, up) {
+    let zx = eye[0]-center[0], zy = eye[1]-center[1], zz = eye[2]-center[2];
+    const zl = Math.hypot(zx, zy, zz) || 1; zx/=zl; zy/=zl; zz/=zl;
+    let xx = up[1]*zz - up[2]*zy, xy = up[2]*zx - up[0]*zz, xz = up[0]*zy - up[1]*zx;
+    const xl = Math.hypot(xx, xy, xz) || 1; xx/=xl; xy/=xl; xz/=xl;
+    const yx = zy*xz - zz*xy, yy = zz*xx - zx*xz, yz = zx*xy - zy*xx;
+    return new Float32Array([
+      xx,yx,zx,0, xy,yy,zy,0, xz,yz,zz,0,
+      -(xx*eye[0]+xy*eye[1]+xz*eye[2]),
+      -(yx*eye[0]+yy*eye[1]+yz*eye[2]),
+      -(zx*eye[0]+zy*eye[1]+zz*eye[2]), 1]);
+  },
+  normalFromMat4: function (m) {
+    const a00=m[0],a01=m[1],a02=m[2], a10=m[4],a11=m[5],a12=m[6],
+          a20=m[8],a21=m[9],a22=m[10];
+    const b01 =  a22*a11 - a12*a21, b11 = -a22*a10 + a12*a20, b21 = a21*a10 - a11*a20;
+    let det = a00*b01 + a01*b11 + a02*b21;
+    if (!det) return new Float32Array([1,0,0, 0,1,0, 0,0,1]);
+    det = 1 / det;
+    return new Float32Array([
+      b01*det, (-a22*a01 + a02*a21)*det, ( a12*a01 - a02*a11)*det,
+      b11*det, ( a22*a00 - a02*a20)*det, (-a12*a00 + a02*a10)*det,
+      b21*det, (-a21*a00 + a01*a20)*det, ( a11*a00 - a01*a10)*det]);
+  },
+};
+
+const canvas = document.getElementById('glcanvas');
+const gl = canvas.getContext('webgl2');
+
+function compileShader(type, source) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, source);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+    throw new Error(gl.getShaderInfoLog(s));
+  }
+  return s;
+}
+function createProgram(vsSource, fsSource) {
+  const p = gl.createProgram();
+  gl.attachShader(p, compileShader(gl.VERTEX_SHADER, vsSource));
+  gl.attachShader(p, compileShader(gl.FRAGMENT_SHADER, fsSource));
+  gl.linkProgram(p);
+  return p;
+}
+const program = createProgram(VS_SOURCE, FS_SOURCE);
+const meteorProgram = createProgram(METEOR_VS_SOURCE, METEOR_FS_SOURCE);
+const meteorResolutionLocation =
+  gl.getUniformLocation(meteorProgram, 'uResolution');
+const meteorTimeLocation = gl.getUniformLocation(meteorProgram, 'uTime');
+const meteorLightEnableLocation = gl.getUniformLocation(meteorProgram, 'uLightEnable');
+const meteorVertexArray = gl.createVertexArray();
+
+const U = {};
+['uModel','uView','uProj','uNormalMat','uBaseColor','uLightPos',
+ 'uMeteorPos','uFlareDirection','uDirectionalDir','uViewPos','uShininess',
+ 'uPulsarPos','uPlanetType','uPulsarBeam','uSunRotation','uMeteorIntensity',
+ 'uLightEnable','uTime'].forEach(function (n) {
+  U[n] = gl.getUniformLocation(program, n);
+});
+
+function createMesh(mesh) {
+  const vao = gl.createVertexArray();
+  gl.bindVertexArray(vao);
+  function attribute(data, location, size) {
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(location);
+    gl.vertexAttribPointer(location, size, gl.FLOAT, false, 0, 0);
+  }
+  attribute(mesh.positions, 0, 3);
+  attribute(mesh.normals,   1, 3);
+  const ibo = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
+  gl.bindVertexArray(null);
+  return { vao: vao, count: mesh.indices.length };
+}
+
+const sphere = createMesh(makeSphere(32));
+const jet = createMesh(makeJet(24, 1.5, 0.075));
+
+gl.enable(gl.DEPTH_TEST);
+
+const cam = { yaw: 0.6, pitch: 0.42, dist: 11 };
+let dragging = false, lastX = 0, lastY = 0;
+
+canvas.addEventListener('pointerdown', function (e) {
+  dragging = true; lastX = e.clientX; lastY = e.clientY;
+  canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener('pointermove', function (e) {
+  if (!dragging) return;
+  cam.yaw   += (e.clientX - lastX) * 0.008;
+  cam.pitch += (e.clientY - lastY) * 0.006;
+  cam.pitch  = Math.max(-1.3, Math.min(1.4, cam.pitch));
+  lastX = e.clientX; lastY = e.clientY;
+});
+canvas.addEventListener('pointerup', function (e) {
+  dragging = false; canvas.releasePointerCapture(e.pointerId);
+});
+canvas.addEventListener('wheel', function (e) {
+  e.preventDefault();
+  cam.dist = Math.max(3, Math.min(40, cam.dist * (1 + e.deltaY * 0.001)));
+}, { passive: false });
+
+const startTime = performance.now();
+let enableSunLight = true;
+let enableMeteorLight = true;
+let enablePulsarLight = true;
+
+const lightStatus = document.getElementById('light-status');
+
+window.addEventListener('keydown', function (event) {
+  if (event.repeat) return;
+
+  if (event.key === '1') {
+    enableSunLight = !enableSunLight;
+  } else if (event.key === '2') {
+    enableMeteorLight = !enableMeteorLight;
+  } else if (event.key === '3') {
+    enablePulsarLight = !enablePulsarLight;
+  } else {
+    return;
+  }
+
+  lightStatus.textContent =
+    '태양 ' + (enableSunLight ? 'On' : 'Off')
+    + ' · 별똥별 ' + (enableMeteorLight ? 'On' : 'Off')
+    + ' · 펄서 ' + (enablePulsarLight ? 'On' : 'Off');
+});
+
+function draw(mesh, model, color, shininess, planetType, time, pulsarBeam = 0) {
+  gl.uniformMatrix4fv(U.uModel, false, model);
+  gl.uniformMatrix3fv(U.uNormalMat, false, Mat4.normalFromMat4(model));
+  gl.uniform3fv(U.uBaseColor, color);
+  gl.uniform1f(U.uShininess, shininess);
+  gl.uniform1f(U.uPlanetType, planetType);
+  gl.uniform1f(U.uPulsarBeam, pulsarBeam);
+  gl.uniform1f(U.uTime, time);
+  gl.bindVertexArray(mesh.vao);
+  gl.drawElements(gl.TRIANGLES, mesh.count, gl.UNSIGNED_SHORT, 0);
+}
+
+function drawSatellite(time, orbitRadius, size, phase, orbitSpeed, color) {
+  let model = Mat4.multiply(
+    Mat4.translate(0, 1.6, 0),
+    Mat4.rotateY(time * orbitSpeed + phase)
+  );
+  model = Mat4.multiply(model, Mat4.translate(orbitRadius, 0, 0));
+  model = Mat4.multiply(model, Mat4.scale(size, size, size));
+  draw(sphere, model, color, 16, 1, time);
+}
+
+function drawPlanet(time) {
+  let model = Mat4.multiply(
+    Mat4.translate(0, 1.6, 0),
+    Mat4.rotateY(time * 0.006 + 3.6)
+  );
+  model = Mat4.multiply(model, Mat4.translate(2.25, 0, 0));
+  model = Mat4.multiply(model, Mat4.rotateY(time * 0.04));
+  model = Mat4.multiply(model, Mat4.scale(0.48, 0.48, 0.48));
+  draw(sphere, model, [0.44, 0.34, 0.62], 24, 4, time);
+}
+
+function drawPulsar(time, position) {
+  const spin = time * 3.0;
+  let coreModel = Mat4.multiply(
+    Mat4.translate(position[0], position[1], position[2]),
+    Mat4.rotateY(spin)
+  );
+  coreModel = Mat4.multiply(coreModel, Mat4.scale(0.15, 0.15, 0.15));
+  draw(sphere, coreModel, [0.6, 0.85, 1.2], 64, 3, time);
+
+  const beamTilt = Mat4.rotateZ(0.24);
+  let northBeam = Mat4.multiply(
+    Mat4.translate(position[0], position[1], position[2]),
+    Mat4.rotateY(spin)
+  );
+  northBeam = Mat4.multiply(northBeam, beamTilt);
+  draw(jet, northBeam, [0.2, 0.65, 1.0], 8, 3, time, 1);
+
+  let southBeam = Mat4.multiply(
+    Mat4.translate(position[0], position[1], position[2]),
+    Mat4.rotateY(spin)
+  );
+  southBeam = Mat4.multiply(southBeam, Mat4.rotateZ(Math.PI + 0.24));
+  draw(jet, southBeam, [0.2, 0.65, 1.0], 8, 3, time, 1);
+}
+
+function render() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.floor(canvas.clientWidth * dpr);
+  const h = Math.floor(canvas.clientHeight * dpr);
+  if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
+  gl.viewport(0, 0, canvas.width, canvas.height);
+
+  gl.clearColor(0.005, 0.007, 0.018, 1.0);
+  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+  const t = (performance.now() - startTime) / 1000;
+  const meteorCycle = t % 5.0;
+  const meteorProgress = Math.min(meteorCycle / 0.82, 1.0);
+  const meteorIntensity =
+    (1.0 - Math.min(Math.max((meteorCycle - 0.48) / 0.34, 0.0), 1.0)) *
+    Math.min(meteorCycle / 0.055, 1.0);
+  const meteorPosition = [
+    -5.0 + meteorProgress * 10.0,
+    4.2 - meteorProgress * 3.2,
+    -0.8
+  ];
+
+  gl.disable(gl.DEPTH_TEST);
+  gl.depthMask(false);
+  gl.useProgram(meteorProgram);
+  gl.uniform2f(meteorResolutionLocation, canvas.width, canvas.height);
+  gl.uniform1f(meteorTimeLocation, t);
+  gl.uniform3f(
+    meteorLightEnableLocation,
+    enableSunLight ? 1.0 : 0.0,
+    enableMeteorLight ? 1.0 : 0.0,
+    enablePulsarLight ? 1.0 : 0.0
+  );
+  gl.bindVertexArray(meteorVertexArray);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  gl.depthMask(true);
+  gl.enable(gl.DEPTH_TEST);
+
+  const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
+  const eye = [Math.sin(cam.yaw) * cp * cam.dist,
+               sp * cam.dist + 1.0,
+               Math.cos(cam.yaw) * cp * cam.dist];
+  const view = Mat4.lookAt(eye, [0, 1.0, 0], [0, 1, 0]);
+  const proj = Mat4.perspective(Math.PI / 4, canvas.width / canvas.height, 0.1, 200);
+
+  const planetCenter = [0, 1.6, 0];
+  const pulsarPosition = [-3.5, 2.5, -1.5];
+  const sunRotation = t * 0.15;
+  const localFlareDirection = [0.45, 0.35, 0.82];
+  const flareDirection = [
+    Math.cos(sunRotation) * localFlareDirection[0]
+      + Math.sin(sunRotation) * localFlareDirection[2],
+    localFlareDirection[1],
+    -Math.sin(sunRotation) * localFlareDirection[0]
+      + Math.cos(sunRotation) * localFlareDirection[2]
+  ];
+  const lightPos = [
+    planetCenter[0] + flareDirection[0] * 1.32,
+    planetCenter[1] + flareDirection[1] * 1.32,
+    planetCenter[2] + flareDirection[2] * 1.32
+  ];
+
+  gl.useProgram(program);
+  gl.uniformMatrix4fv(U.uView, false, view);
+  gl.uniformMatrix4fv(U.uProj, false, proj);
+  gl.uniform3fv(U.uLightPos, lightPos);
+  gl.uniform3fv(U.uPulsarPos, pulsarPosition);
+  gl.uniform3fv(U.uMeteorPos, meteorPosition);
+  gl.uniform3fv(U.uFlareDirection, localFlareDirection);
+  gl.uniform3f(U.uDirectionalDir, 0.0, 1.0, 0.0);
+  gl.uniform3fv(U.uViewPos, eye);
+  gl.uniform1f(U.uSunRotation, sunRotation);
+  gl.uniform1f(U.uMeteorIntensity, meteorIntensity);
+  gl.uniform3f(
+    U.uLightEnable,
+    enableSunLight ? 1.0 : 0.0,
+    enableMeteorLight ? 1.0 : 0.0,
+    enablePulsarLight ? 1.0 : 0.0
+  );
+
+  let m = Mat4.multiply(
+    Mat4.translate(planetCenter[0], planetCenter[1], planetCenter[2]),
+    Mat4.rotateY(sunRotation)
+  );
+  m = Mat4.multiply(m, Mat4.scale(1.35, 1.35, 1.35));
+  draw(sphere, m, [1.0, 0.4, 0.05], 32, 0, t);
+
+  drawPlanet(t);
+  drawPulsar(t, pulsarPosition);
+  drawSatellite(t, 3.5, 0.36, 0, 0.015, [0.72, 0.72, 0.76]);
+  drawSatellite(t, 4.6, 0.27, 0.65, 0.011, [0.55, 0.78, 0.88]);
+  drawSatellite(t, 5.5, 0.19, 5.0, 0.008, [0.86, 0.62, 0.42]);
+
+  gl.bindVertexArray(null);
+  requestAnimationFrame(render);
+}
+requestAnimationFrame(render);
+</script>
+</body>
+</html>

@@ -225,7 +225,7 @@ window.InspectionControls = function(canvas, options = {}) {
 
   function camera() {
     const cosPitch = Math.cos(state.pitch);
-    const sinPitch = Math.sin(pitch = state.pitch);
+    const sinPitch = Math.sin(state.pitch);
     const cosYaw = Math.cos(state.yaw);
     const sinYaw = Math.sin(state.yaw);
 

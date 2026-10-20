@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>실습 2 · 태양과 UV 행성</title>
+<link rel="stylesheet" href="demo.css">
+<style>
+.wrap{grid-template-columns:minmax(0,1fr) 20rem;height:100vh;height:100dvh}
+.stage{position:relative;display:block;min-height:320px}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;max-height:none;max-width:none;touch-action:none}
+#status{font-size:12px}
+@media(max-width:800px){.wrap{display:block;height:auto}.stage{height:72vh;height:72dvh;min-height:420px}.panel{max-height:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="stage">
+    <canvas id="cv" aria-label="태양과의 거리를 조절하며 제자리에서 자전하는 UV 구형 행성" tabindex="0"></canvas>
+  </div>
+  <aside class="panel">
+    <h1>실습 2 · 태양과 UV 행성</h1>
+    <p class="sub">거리 슬라이더로 행성의 태양 거리를 조절해 지형·물·반사를 바꾸고, 주위 먼지 집적도로 행성 고리를 조절합니다. 드래그: 시점 회전 · 휠: 확대/축소</p>
+    <div id="ui"></div>
+    <button id="reset">시점 초기화</button>
+    <p id="status" role="status">모래·암석 텍스처 로딩 중…</p>
+    <p class="note" id="note"></p>
+    <p>행성 자전을 켜고 끌 수 있습니다. 기본 행성과 비교를 선택하면 지형 변화와 고리 농도를 0으로 두어 현재 설정과 비교할 수 있습니다.</p>
+  </aside>
+</div>
+<script src="demo.js"></script>
+<script src="task2.js"></script>
+</body>
+</html>
