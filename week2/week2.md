@@ -136,7 +136,7 @@ Starlink 31114는 지구 표면에서 약 476~497 km 높이에 있는 저궤도 
 
 또한 실제 크기까지 동일한 비율로 표현하면 Starlink 31114는 지구에 비해 매우 작기 때문에 화면에서 거의 보이지 않을 수 있다. Starlink 31114의 실제 길이는 0.30 m, 직경은 4.10 m, 전개 시 폭은 29 m인 반면 지구의 반지름은 6371 km이므로 크기 차이가 매우 크다. 
 
-
+<task2 링크>
 https://cg.catholic.ac.kr/~mgchoi/CG/demos/d02-transform-lab.html?d=eyJyYW5nZSI6eyJ4IjoiMSIsInkiOiIxIiwieiI6IjEifSwib2JqZWN0cyI6W3siaWQiOiJlYXJ0aCIsIm5hbWUiOiLsp4DqtawiLCJjb2xvciI6WzAuMzUsMC42LDAuOTVdLCJzdGVwcyI6W3sidHlwZSI6IlN1IiwiYXJncyI6WyIwLjAwMDAwMjUiXX0seyJ0eXBlIjoiUnoiLCJhcmdzIjpbInQqMTMuMiJdfSx7InR5cGUiOiJTIiwiYXJncyI6WyI2MzcxIiwiNjM3MSIsIjYzNzEiXX1dfSx7ImlkIjoibW9vbiIsIm5hbWUiOiLri6wiLCJjb2xvciI6WzAuNzgsMC43OCwwLjgyXSwic3RlcHMiOlt7InR5cGUiOiJTdSIsImFyZ3MiOlsiMC4wMDAwMDI1Il19LHsidHlwZSI6IlJ6IiwiYXJncyI6WyJ0KjEzLjIiXX0seyJ0eXBlIjoiVCIsImFyZ3MiOlsiMzg0NDAwIiwiMCIsIjAiXX0seyJ0eXBlIjoiUnoiLCJhcmdzIjpbIjE4MCJdfSx7InR5cGUiOiJTIiwiYXJncyI6WyIxNzM3IiwiMTczNyIsIjE3MzciXX1dfSx7ImlkIjoic2F0IiwibmFtZSI6IuyduOqzteychOyEsSIsImNvbG9yIjpbMC45NSwwLjcyLDAuMzVdLCJzdGVwcyI6W3sidHlwZSI6IlN1IiwiYXJncyI6WyIwLjAwMDAwMjUiXX0seyJ0eXBlIjoiUngiLCJhcmdzIjpbIjUzLjE2Il19LHsidHlwZSI6IlJ6IiwiYXJncyI6WyJ0KjEwMCJdfSx7InR5cGUiOiJUIiwiYXJncyI6WyI2ODQwLjg1IiwiMCIsIjAiXX0seyJ0eXBlIjoiUyIsImFyZ3MiOlsiMC4wMyIsIjAuMDMiLCIwLjAzIl19XX1dfQ%3D%3D
 
 #TASK 3
@@ -145,13 +145,9 @@ https://cg.catholic.ac.kr/~mgchoi/CG/demos/d02-transform-lab.html?d=eyJyYW5nZSI6
 
 실제 비율을 그대로 표현하면 지구, 달, Starlink 31114의 실제 크기와 거리 관계를 정확하게 나타낼 수 있다.
 
-하지만 실제 크기 차이가 매우 크기 때문에 화면에서는 Starlink 31114가 거의 보이지 않는다. Starlink 31114는 길이 0.30 m, 직경 4.10 m, 전개 시 폭 약 29 m인 작은 인공위성인 반면, 지구의 평균 반지름은 6371 km이다. {"fallbackMarkdown":"(SatelliteMap.space
-)","reference":{"matched_text":"","prefix":null,"start_idx":4379,"end_idx":4398,"safe_urls":["https://satellitemap.space/?norad=58766","https://satellitemap.space/?norad=58766&utm_source=chatgpt.com"],"refs":[],"alt":"(SatelliteMap.space
-)","prompt_text":null,"type":"grouped_webpages","style":null,"status":"done","items":[{"title":"Starlink 31114 (58766) - starlink satellite tracking | SatelliteMap.space","url":"https://satellitemap.space/?norad=58766&utm_source=chatgpt.com","attribution":"SatelliteMap.space","pub_date":null,"snippet":"","attribution_segments":null,"supporting_websites":[],"refs":[{"turn_index":1,"ref_type":"search","ref_index":0}],"hue":null,"attributions":null}],"fallback_items":null,"error":null},"showLoginRequiredCard":false}
+하지만 실제 크기 차이가 매우 크기 때문에 화면에서는 Starlink 31114가 거의 보이지 않는다. Starlink 31114는 길이 0.30 m, 직경 4.10 m, 전개 시 폭 약 29 m인 작은 인공위성인 반면, 지구의 평균 반지름은 6371 km이다. 
 
-또한 Starlink 31114는 지구 표면에서 약 476~497 km 높이의 저궤도를 돌기 때문에 지구 중심에서 약 6850 km 정도 떨어져 있다. 달까지의 평균 거리인 384,400 km와 비교하면 위성은 지구에 훨씬 가까운 위치에 있다. {"fallbackMarkdown":"(SatelliteMap.space
-)","reference":{"matched_text":"","prefix":null,"start_idx":4537,"end_idx":4569,"safe_urls":["https://isstracker.pl/en/satellites/58766","https://isstracker.pl/en/satellites/58766?utm_source=chatgpt.com","https://satellitemap.space/?norad=58766","https://satellitemap.space/?norad=58766&utm_source=chatgpt.com"],"refs":[],"alt":"(SatelliteMap.space
-)","prompt_text":null,"type":"grouped_webpages","style":null,"status":"done","items":[{"title":"Starlink 31114 (58766) - starlink satellite tracking | SatelliteMap.space","url":"https://satellitemap.space/?norad=58766&utm_source=chatgpt.com","attribution":"SatelliteMap.space","pub_date":null,"snippet":"","attribution_segments":null,"supporting_websites":[{"title":"STARLINK-31114 🛰 - Satellite information • ISS Tracker","url":"https://isstracker.pl/en/satellites/58766?utm_source=chatgpt.com","pub_date":null,"snippet":"","attribution":"ISS 추적기"}],"refs":[{"turn_index":1,"ref_type":"search","ref_index":0},{"turn_index":1,"ref_type":"search","ref_index":2}],"hue":null,"attributions":null}],"fallback_items":null,"error":null},"showLoginRequiredCard":false}
+또한 Starlink 31114는 지구 표면에서 약 476~497 km 높이의 저궤도를 돌기 때문에 지구 중심에서 약 6850 km 정도 떨어져 있다. 달까지의 평균 거리인 384,400 km와 비교하면 위성은 지구에 훨씬 가까운 위치에 있다. 
 
 따라서 실제 비율은 정확한 물리적 정보를 전달하는 데는 적합하지만, 사람이 화면에서 지구, 달, 위성의 위치와 움직임을 관찰하기에는 적합하지 않다고 판단하였다.
 
@@ -205,5 +201,5 @@ Starlink 31114의 표시 위치를 실제 위치보다 멀리 설정했기 때�
 따라서 정확한 물리적 크기와 거리 비교보다는 시각적인 정보 전달과 변환 과정의 이해에 적합하다.
 
 이번 표현에서는 실제 비율의 정확성만을 유지하는 것보다, 사람이 화면에서 지구, 달, Starlink 31114의 위치와 움직임을 쉽게 이해할 수 있도록 시각적 표현을 개선하는 것을 우선하였다.
-
+<rask3 링크>
 https://cg.catholic.ac.kr/~mgchoi/CG/demos/d02-transform-lab.html?d=eyJyYW5nZSI6eyJ4IjoiMSIsInkiOiIxIiwieiI6IjEifSwib2JqZWN0cyI6W3siaWQiOiJlYXJ0aCIsIm5hbWUiOiLsp4DqtawiLCJjb2xvciI6WzAuMzUsMC42LDAuOTVdLCJzdGVwcyI6W3sidHlwZSI6IlJ6IiwiYXJncyI6WyJ0ICogMTMuMiJdfSx7InR5cGUiOiJTIiwiYXJncyI6WyIwLjMiLCIwLjMiLCIwLjMiXX1dfSx7ImlkIjoibW9vbiIsIm5hbWUiOiLri6wiLCJjb2xvciI6WzAuNzgsMC43OCwwLjgyXSwic3RlcHMiOlt7InR5cGUiOiJSeiIsImFyZ3MiOlsidCAqIDEzLjE4NiJdfSx7InR5cGUiOiJUIiwiYXJncyI6WyIwLjg1IiwiMCIsIjAiXX0seyJ0eXBlIjoiUnoiLCJhcmdzIjpbIjE4MCJdfSx7InR5cGUiOiJTIiwiYXJncyI6WyIwLjE1IiwiMC4xNSIsIjAuMTUiXX0seyJ0eXBlIjoiUngiLCJhcmdzIjpbInQgKiAxMy4xODYiXX1dfSx7ImlkIjoic2F0IiwibmFtZSI6IuyduOqzteychOyEsSIsImNvbG9yIjpbMC45NSwwLjcyLDAuMzVdLCJzdGVwcyI6W3sidHlwZSI6IlJ4IiwiYXJncyI6WyI1My4xNiJdfSx7InR5cGUiOiJSeiIsImFyZ3MiOlsidCoxMDAiXX0seyJ0eXBlIjoiVCIsImFyZ3MiOlsiMC41IiwiMCIsIjAiXX0seyJ0eXBlIjoiUyIsImFyZ3MiOlsiMC4wOCIsIjAuMDgiLCIwLjA4Il19XX1dfQ%3D%3D
