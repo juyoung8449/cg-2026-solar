@@ -6,9 +6,7 @@
 
 숫자가 커서 생긴 문제가 있었는가? 있었다면 무엇인가?
 
-문제가 있었다. 지구와 달 사이의 평균 거리가 약 384,400 km이고, Starlink 31114도 지구 표면에서 약 476~497 km 높이의 저궤도를 돌고 있기 때문에 좌표값이 매우 커졌다. Starlink 31114의 궤도는 거의 원형이며, 궤도 경사각은 약 53.16°, 공전주기는 약 94.1분이다. {"fallbackMarkdown":"(SatelliteMap.space
-)","reference":{"matched_text":"","prefix":null,"start_idx":777,"end_idx":809,"safe_urls":["https://isstracker.pl/en/satellites/58766","https://isstracker.pl/en/satellites/58766?utm_source=chatgpt.com","https://satellitemap.space/?norad=58766","https://satellitemap.space/?norad=58766&utm_source=chatgpt.com"],"refs":[],"alt":"(SatelliteMap.space
-)","prompt_text":null,"type":"grouped_webpages","style":null,"status":"done","items":[{"title":"Starlink 31114 (58766) - starlink satellite tracking | SatelliteMap.space","url":"https://satellitemap.space/?norad=58766&utm_source=chatgpt.com","attribution":"SatelliteMap.space","pub_date":null,"snippet":"","attribution_segments":null,"supporting_websites":[{"title":"STARLINK-31114 🛰 - Satellite information • ISS Tracker","url":"https://isstracker.pl/en/satellites/58766?utm_source=chatgpt.com","pub_date":null,"snippet":"","attribution":"ISS 추적기"}],"refs":[{"turn_index":1,"ref_type":"search","ref_index":0},{"turn_index":1,"ref_type":"search","ref_index":2}],"hue":null,"attributions":null}],"fallback_items":null,"error":null},"showLoginRequiredCard":false}
+문제가 있었다. 지구와 달 사이의 평균 거리가 약 384,400 km이고, Starlink 31114도 지구 표면에서 약 476~497 km 높이의 저궤도를 돌고 있기 때문에 좌표값이 매우 커졌다. Starlink 31114의 궤도는 거의 원형이며, 궤도 경사각은 약 53.16°, 공전주기는 약 94.1분이다. 
 
 그 결과 기본적인 축 범위에서는 물체가 너무 작게 보이거나 위치를 확인하기 어려웠다. 따라서 지구, 달, 위성의 위치를 모두 화면에 표현하기 위해 축의 범위를 충분히 크게 설정해야 했다.
 
@@ -25,11 +23,10 @@
 
 출처: NASA Earth Fact Sheet
 
-{"fallbackMarkdown":"NASA Earth Fact Sheet
-","reference":{"matched_text":"","prefix":null,"start_idx":1205,"end_idx":1295,"safe_urls":[],"refs":[],"alt":"NASA Earth Fact Sheet
-","prompt_text":null,"type":"url","logo":null,"layout":null,"item":{"title":"NASA Earth Fact Sheet","url":"https://nssdc.gsfc.nasa.gov/planetary/factsheet/earthfact.html?utm_source=chatgpt.com","attribution":"nssdc.gsfc.nasa.gov","pub_date":null,"snippet":null,"attribution_segments":null,"supporting_websites":[],"refs":[],"hue":null,"attributions":null},"title":"NASA Earth Fact Sheet"},"showLoginRequiredCard":false}
+ 
+ 달
 
-달
+ 
 
 달의 평균 반지름: 1737.4 km
 
@@ -37,9 +34,7 @@
 
 출처: NASA Moon Fact Sheet
 
-{"fallbackMarkdown":"NASA Moon Fact Sheet
-","reference":{"matched_text":"","prefix":null,"start_idx":1391,"end_idx":1479,"safe_urls":[],"refs":[],"alt":"NASA Moon Fact Sheet
-","prompt_text":null,"type":"url","logo":null,"layout":null,"item":{"title":"NASA Moon Fact Sheet","url":"https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html?utm_source=chatgpt.com","attribution":"nssdc.gsfc.nasa.gov","pub_date":null,"snippet":null,"attribution_segments":null,"supporting_websites":[],"refs":[],"hue":null,"attributions":null},"title":"NASA Moon Fact Sheet"},"showLoginRequiredCard":false}
+
 
 Starlink 31114
 
@@ -63,13 +58,6 @@ NORAD ID: 58766
 
 전개 시 폭: 29.00 m
 
-출처: SatelliteMap.space 및 위성 궤도 자료 {"fallbackMarkdown":"(SatelliteMap.space
-)","reference":{"matched_text":"","prefix":null,"start_idx":1757,"end_idx":1789,"safe_urls":["https://isstracker.pl/en/satellites/58766","https://isstracker.pl/en/satellites/58766?utm_source=chatgpt.com","https://satellitemap.space/?norad=58766","https://satellitemap.space/?norad=58766&utm_source=chatgpt.com"],"refs":[],"alt":"(SatelliteMap.space
-)","prompt_text":null,"type":"grouped_webpages","style":null,"status":"done","items":[{"title":"Starlink 31114 (58766) - starlink satellite tracking | SatelliteMap.space","url":"https://satellitemap.space/?norad=58766&utm_source=chatgpt.com","attribution":"SatelliteMap.space","pub_date":null,"snippet":"","attribution_segments":null,"supporting_websites":[{"title":"STARLINK-31114 🛰 - Satellite information • ISS Tracker","url":"https://isstracker.pl/en/satellites/58766?utm_source=chatgpt.com","pub_date":null,"snippet":"","attribution":"ISS 추적기"}],"refs":[{"turn_index":1,"ref_type":"search","ref_index":0},{"turn_index":1,"ref_type":"search","ref_index":2}],"hue":null,"attributions":null}],"fallback_items":null,"error":null},"showLoginRequiredCard":false}
-
-{"fallbackMarkdown":"SatelliteMap.space - Starlink 31114
-","reference":{"matched_text":"","prefix":null,"start_idx":1791,"end_idx":1872,"safe_urls":["https://satellitemap.space/?norad=58766","https://satellitemap.space/?norad=58766&utm_source=chatgpt.com"],"refs":[{"turn_index":1,"ref_type":"search","ref_index":0}],"alt":"SatelliteMap.space - Starlink 31114
-","prompt_text":null,"type":"url","logo":null,"layout":null,"item":{"title":"Starlink 31114 (58766) - starlink satellite tracking | SatelliteMap.space","url":"https://satellitemap.space/?norad=58766&utm_source=chatgpt.com","attribution":"satellitemap.space","pub_date":null,"snippet":"","attribution_segments":null,"supporting_websites":[],"refs":[{"turn_index":1,"ref_type":"search","ref_index":0}],"hue":null,"attributions":null},"title":"SatelliteMap.space - Starlink 31114"},"showLoginRequiredCard":false}
 
 실습에서 계산하여 사용한 값
 
@@ -96,6 +84,11 @@ Starlink 31114의 지구 중심으로부터 거리:
 30*t와 같은 회전값:
 
 실제 Starlink 31114의 자세 데이터를 의미하는 값이 아니라, 행렬 변환과 시간에 따른 회전을 실습하기 위해 설정한 값이다.
+
+
+
+
+<task1 링크>
 
 https://cg.catholic.ac.kr/~mgchoi/CG/demos/d02-transform-lab.html?d=eyJyYW5nZSI6eyJ4IjoiNDIwMDAwIiwieSI6IjQyMDAwMCIsInoiOiI0MjAwMDAifSwib2JqZWN0cyI6W3siaWQiOiJlYXJ0aCIsIm5hbWUiOiLsp4DqtawiLCJjb2xvciI6WzAuMzUsMC42LDAuOTVdLCJzdGVwcyI6W3sidHlwZSI6IlJ6IiwiYXJncyI6WyJ0KjEzLjIiXX0seyJ0eXBlIjoiUyIsImFyZ3MiOlsiNjM3MSIsIjYzNzEiLCI2MzcxIl19XX0seyJpZCI6Im1vb24iLCJuYW1lIjoi64usIiwiY29sb3IiOlswLjc4LDAuNzgsMC44Ml0sInN0ZXBzIjpbeyJ0eXBlIjoiUnoiLCJhcmdzIjpbInQqMTMuMiJdfSx7InR5cGUiOiJUIiwiYXJncyI6WyIzODQ0MDAiLCIwIiwiMCJdfSx7InR5cGUiOiJSeiIsImFyZ3MiOlsiMTgwIl19LHsidHlwZSI6IlMiLCJhcmdzIjpbIjE3MzciLCIxNzM3IiwiMTczNyJdfV19LHsiaWQiOiJzYXQiLCJuYW1lIjoi7J246rO17JyE7ISxIiwiY29sb3IiOlswLjk1LDAuNzIsMC4zNV0sInN0ZXBzIjpbeyJ0eXBlIjoiUngiLCJhcmdzIjpbIjUzLjE2Il19LHsidHlwZSI6IlJ6IiwiYXJncyI6WyJ0KjEwMCJdfSx7InR5cGUiOiJUIiwiYXJncyI6WyI2ODQwLjg1IiwiMCIsIjAiXX0seyJ0eXBlIjoiUyIsImFyZ3MiOlsiMC4wMyIsIjAuMDMiLCIwLjAzIl19XX1dfQ%3D%3D
 
@@ -137,15 +130,11 @@ s = 1 / 420000
 
 실제 거리 비율을 유지하면서 전체 장면을 축소하기 때문에 지구와 Starlink 31114는 화면에서 작게 보인다.
 
-Starlink 31114는 지구 표면에서 약 476~497 km 높이에 있는 저궤도 위성이므로 지구 중심에서 약 6850 km 떨어진 위치에 해당한다. 반면 달은 지구 중심에서 약 384,400 km 떨어져 있기 때문에 위성보다 훨씬 바깥쪽에 위치하게 된다. {"fallbackMarkdown":"(SatelliteMap.space
-)","reference":{"matched_text":"","prefix":null,"start_idx":3639,"end_idx":3671,"safe_urls":["https://isstracker.pl/en/satellites/58766","https://isstracker.pl/en/satellites/58766?utm_source=chatgpt.com","https://satellitemap.space/?norad=58766","https://satellitemap.space/?norad=58766&utm_source=chatgpt.com"],"refs":[],"alt":"(SatelliteMap.space
-)","prompt_text":null,"type":"grouped_webpages","style":null,"status":"done","items":[{"title":"Starlink 31114 (58766) - starlink satellite tracking | SatelliteMap.space","url":"https://satellitemap.space/?norad=58766&utm_source=chatgpt.com","attribution":"SatelliteMap.space","pub_date":null,"snippet":"","attribution_segments":null,"supporting_websites":[{"title":"STARLINK-31114 🛰 - Satellite information • ISS Tracker","url":"https://isstracker.pl/en/satellites/58766?utm_source=chatgpt.com","pub_date":null,"snippet":"","attribution":"ISS 추적기"}],"refs":[{"turn_index":1,"ref_type":"search","ref_index":0},{"turn_index":1,"ref_type":"search","ref_index":2}],"hue":null,"attributions":null}],"fallback_items":null,"error":null},"showLoginRequiredCard":false}
+Starlink 31114는 지구 표면에서 약 476~497 km 높이에 있는 저궤도 위성이므로 지구 중심에서 약 6850 km 떨어진 위치에 해당한다. 반면 달은 지구 중심에서 약 384,400 km 떨어져 있기 때문에 위성보다 훨씬 바깥쪽에 위치하게 된다. 
 
 따라서 화면에서는 지구와 Starlink 31114가 서로 가까운 영역에 있고, 달은 훨씬 먼 위치에 나타난다.
 
-또한 실제 크기까지 동일한 비율로 표현하면 Starlink 31114는 지구에 비해 매우 작기 때문에 화면에서 거의 보이지 않을 수 있다. Starlink 31114의 실제 길이는 0.30 m, 직경은 4.10 m, 전개 시 폭은 29 m인 반면 지구의 반지름은 6371 km이므로 크기 차이가 매우 크다. {"fallbackMarkdown":"(SatelliteMap.space
-)","reference":{"matched_text":"","prefix":null,"start_idx":3909,"end_idx":3928,"safe_urls":["https://satellitemap.space/?norad=58766","https://satellitemap.space/?norad=58766&utm_source=chatgpt.com"],"refs":[],"alt":"(SatelliteMap.space
-)","prompt_text":null,"type":"grouped_webpages","style":null,"status":"done","items":[{"title":"Starlink 31114 (58766) - starlink satellite tracking | SatelliteMap.space","url":"https://satellitemap.space/?norad=58766&utm_source=chatgpt.com","attribution":"SatelliteMap.space","pub_date":null,"snippet":"","attribution_segments":null,"supporting_websites":[],"refs":[{"turn_index":1,"ref_type":"search","ref_index":0}],"hue":null,"attributions":null}],"fallback_items":null,"error":null},"showLoginRequiredCard":false}
+또한 실제 크기까지 동일한 비율로 표현하면 Starlink 31114는 지구에 비해 매우 작기 때문에 화면에서 거의 보이지 않을 수 있다. Starlink 31114의 실제 길이는 0.30 m, 직경은 4.10 m, 전개 시 폭은 29 m인 반면 지구의 반지름은 6371 km이므로 크기 차이가 매우 크다. 
 
 
 https://cg.catholic.ac.kr/~mgchoi/CG/demos/d02-transform-lab.html?d=eyJyYW5nZSI6eyJ4IjoiMSIsInkiOiIxIiwieiI6IjEifSwib2JqZWN0cyI6W3siaWQiOiJlYXJ0aCIsIm5hbWUiOiLsp4DqtawiLCJjb2xvciI6WzAuMzUsMC42LDAuOTVdLCJzdGVwcyI6W3sidHlwZSI6IlN1IiwiYXJncyI6WyIwLjAwMDAwMjUiXX0seyJ0eXBlIjoiUnoiLCJhcmdzIjpbInQqMTMuMiJdfSx7InR5cGUiOiJTIiwiYXJncyI6WyI2MzcxIiwiNjM3MSIsIjYzNzEiXX1dfSx7ImlkIjoibW9vbiIsIm5hbWUiOiLri6wiLCJjb2xvciI6WzAuNzgsMC43OCwwLjgyXSwic3RlcHMiOlt7InR5cGUiOiJTdSIsImFyZ3MiOlsiMC4wMDAwMDI1Il19LHsidHlwZSI6IlJ6IiwiYXJncyI6WyJ0KjEzLjIiXX0seyJ0eXBlIjoiVCIsImFyZ3MiOlsiMzg0NDAwIiwiMCIsIjAiXX0seyJ0eXBlIjoiUnoiLCJhcmdzIjpbIjE4MCJdfSx7InR5cGUiOiJTIiwiYXJncyI6WyIxNzM3IiwiMTczNyIsIjE3MzciXX1dfSx7ImlkIjoic2F0IiwibmFtZSI6IuyduOqzteychOyEsSIsImNvbG9yIjpbMC45NSwwLjcyLDAuMzVdLCJzdGVwcyI6W3sidHlwZSI6IlN1IiwiYXJncyI6WyIwLjAwMDAwMjUiXX0seyJ0eXBlIjoiUngiLCJhcmdzIjpbIjUzLjE2Il19LHsidHlwZSI6IlJ6IiwiYXJncyI6WyJ0KjEwMCJdfSx7InR5cGUiOiJUIiwiYXJncyI6WyI2ODQwLjg1IiwiMCIsIjAiXX0seyJ0eXBlIjoiUyIsImFyZ3MiOlsiMC4wMyIsIjAuMDMiLCIwLjAzIl19XX1dfQ%3D%3D
