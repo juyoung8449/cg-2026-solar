@@ -19,7 +19,7 @@ uniform sampler2D uColor,uNormal,uARM,uEnv;
 uniform vec3 uEye,uLight,uTint;
 uniform float uRough,uMetal,uNormalStrength,uPower,uAmbient,uEnvPower;
 
-vec3 srgbToLinear(vec3 c){
+vec3 sRGBToLinear(vec3 c){
  return mix(c/12.92,pow((c+.055)/1.055,vec3(2.4)),step(vec3(.04045),c));
 }
 vec3 linearToSrgb(vec3 c){
@@ -44,23 +44,24 @@ vec3 directPBR(vec3 N,vec3 V,vec3 L,vec3 base,float rough,float metal){
 
 void main(){
  vec3 N=normalize(vN),V=normalize(uEye-vP),L=normalize(uLight);
- vec3 base=srgbToLinear(texture(uColor,vUV).rgb)*uTint;
+ vec3 base=uTint;
+ base=sRGBToLinear(texture(uColor, vUV).rgb) * uTint;
 
  float rough=uRough,metal=uMetal,ao=1.0;
- vec3 arm=texture(uARM,vUV).rgb;
- ao=arm.r;
- rough=max(arm.g*uRough,0.045);
- metal=arm.b*uMetal;
+ vec3 arm = texture(uARM, vUV).rgb;
+ ao = arm.r;
+ rough = max(arm.g * uRough, 0.045);
+ metal = arm.b * uMetal;
 
- if(uNormalStrength>0.0){
-  vec3 dp1=dFdx(vP),dp2=dFdy(vP);
-  vec2 du1=dFdx(vUV),du2=dFdy(vUV);
-  vec3 T=cross(dp2,N)*du1.x+cross(N,dp1)*du2.x;
-  vec3 B=cross(dp2,N)*du1.y+cross(N,dp1)*du2.y;
-  float inv=inversesqrt(max(max(dot(T,T),dot(B,B)),1e-8));
-  vec3 mapN=texture(uNormal,vUV).xyz*2.0-1.0;
-  mapN.xy*=uNormalStrength;
-  N=normalize(mat3(T*inv,B*inv,N)*normalize(mapN));
+ if (uNormalStrength > 0.0) {
+     vec3 dp1 = dFdx(vP), dp2 = dFdy(vP);
+     vec2 du1 = dFdx(vUV), du2 = dFdy(vUV);
+     vec3 T = cross(dp2, N) * du1.x + cross(N, dp1) * du2.x;
+     vec3 B = cross(dp2, N) * du1.y + cross(N, dp1) * du2.y;
+     float inv = inversesqrt(max(max(dot(T, T), dot(B, B)), 1e-8));
+     vec3 mapN = texture(uNormal, vUV).xyz * 2.0 - 1.0;
+     mapN.xy *= uNormalStrength;
+     N = normalize(mat3(T * inv, B * inv, N) * normalize(mapN));
  }
 
  vec3 color=directPBR(N,V,L,base,rough,metal);
@@ -71,7 +72,7 @@ void main(){
  vec3 reflected=reflect(-V,N);
  vec2 envUV=vec2(atan(reflected.z,reflected.x)/(2.0*PI)+0.5,
                  asin(clamp(reflected.y,-1.0,1.0))/PI+0.5);
- vec3 envColor=srgbToLinear(textureLod(uEnv,envUV,rough*7.0).rgb);
+ vec3 envColor=sRGBToLinear(textureLod(uEnv,envUV,rough*7.0).rgb);
  vec3 envF0=mix(vec3(0.04),base,metal);
  color+=uEnvPower*ao*envColor*envF0;
 
@@ -85,24 +86,34 @@ const prog=D.program(gl,VS,FS),U=D.uniforms(gl,prog,[
 ]);
 const mesh=D.upload(gl,D.cube(1.9));
 const assets={wood_planks:['Diffuse','nor_gl','arm'],rusty_metal_04:['Diffuse','nor_gl','arm'],rock_boulder_dry:['Diffuse','nor_gl','arm']};
-const textures={},jobs=[];let failed=false;
+const textures={},jobs=[],failedAssets=[];
 function load(name){
  const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);
  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([128,128,255,255]));
  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+ const url=new URL('assets/week06/'+name+(name.endsWith('_arm')?'.png':'.jpg'),document.baseURI);
  jobs.push(new Promise(resolve=>{const img=new Image();img.onload=()=>{
-  gl.bindTexture(gl.TEXTURE_2D,tex);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
-  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,img);
-  gl.generateMipmap(gl.TEXTURE_2D);
-  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
+  try{
+   gl.bindTexture(gl.TEXTURE_2D,tex);gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,img);
+   gl.generateMipmap(gl.TEXTURE_2D);
+   gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);
+  }catch(error){
+   failedAssets.push(url.href);
+   console.error('Texture upload failed:',url.href,error);
+  }
   resolve();
- };img.onerror=()=>{failed=true;resolve();};
- img.src='assets/week06/'+name+(name.endsWith('_arm')?'.png':'.jpg');}));
+ };img.onerror=event=>{
+  failedAssets.push(url.href);
+  console.error('Texture image failed to load:',url.href,event);
+  resolve();
+ };
+ img.src=url.href;}));
  return tex;
 }
 for(const [asset,kinds] of Object.entries(assets))textures[asset]=kinds.map(kind=>load(asset+'_'+kind));
 const envTex=load('studio_small_09_tonemapped');
-Promise.all(jobs).then(()=>{document.querySelector('#status').textContent=failed?'텍스처 로딩 실패: HTTP 서버와 week6/assets/week06 파일 경로를 확인하세요':'색상·ARM·normal·환경 텍스처 로딩 완료 · TODO 1~5 적용 상태입니다';});
+Promise.all(jobs).then(()=>{document.querySelector('#status').textContent=failedAssets.length?`텍스처 로딩 실패: ${failedAssets.join(', ')} · 파일 경로와 로컬 서버 접근 권한을 확인하세요`:'색상·ARM·normal·환경 텍스처 로딩 완료 · TODO 1~5 적용 상태입니다';});
 document.querySelector('#ui').innerHTML='';
 const S=D.UI('#ui',[
  {id:'material',type:'select',label:'재질 선택',value:'rusty_metal_04',options:[
